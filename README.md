@@ -11,9 +11,11 @@ inference, and the three evaluation metrics used in the paper.
 
 ![source, generated, glyph condition, mask](docs/teaser.png)
 
-Four randomly drawn test samples, sharpest half of the split, shown without
-cherry-picking: rows 1 and 3 reproduce the target text, rows 2 and 4 do not.
-Measured over the full test split of 3,258 images: **ACC 0.8109, NED 0.9549**.
+Four selected test samples where the recogniser reads the edited plate
+correctly. Over the full test split of 3,258 images the model reaches
+**ACC 0.8109, NED 0.9549** — so roughly one plate in five is not read back as
+its target, typically through a single stroke-level confusion such as 3 → 1 or
+7 → 1 rather than a wholly wrong character.
 
 ## What is here
 
