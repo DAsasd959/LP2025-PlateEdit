@@ -21,6 +21,7 @@ its target, typically through a single stroke-level confusion such as 3 → 1 or
 
 ```
 configs/lp2025_train.yaml    training configuration, with the provenance of every value
+scripts/prepare_sample.py    build inference inputs from your own plate photo
 scripts/check_data.py        verify a checkout before running anything
 scripts/reproduce.sh         generate and evaluate in one go
 scripts/build_cache.sh       encode a split into VAE latents + text embeddings
@@ -139,6 +140,29 @@ Batch size is 1, so one epoch is 2,569 steps. The released checkpoint is step
 27,606, about epoch 10–11. The original run continued to 43,784 steps without
 improving validation loss; see [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) before
 deciding to train longer.
+
+## Run it on your own plates
+
+The dataset ships with its masks and glyphs already built. To edit a plate of
+your own, `prepare_sample.py` constructs the four inputs from the crop, the text
+it shows, and the four corners of the text region:
+
+```bash
+python scripts/prepare_sample.py \
+    --image my_plate.jpg --text RBE8700 \
+    --quad "16,21 8,68 172,101 180,52" \
+    --span 3:6 --target 999 \
+    --font path/to/plate_font.ttf \
+    --out data/mine
+```
+
+The replacement must have the same number of characters as the span it replaces.
+The glyph is laid out across the whole plate before the mask cuts it, so a
+different count shifts every character — including the ones still visible in the
+photograph. The script refuses that rather than producing a plate that is subtly
+wrong at the seam.
+
+No font is bundled; supply one that resembles the plate face you are editing.
 
 ## Generate
 
