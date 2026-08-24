@@ -81,7 +81,7 @@ instead of `filtered_plate/`; `scripts/infer.py` accepts either.
 |---|---:|---|
 | train | 2,569 | |
 | val | 620 | |
-| test | 3,258 | only 2,542 have a source image in this archive — see docs/DATA.md |
+| test | 3,258 | this copy holds 2,542 source images; the missing 716 are listed in docs/test_missing_sources.txt |
 
 ## Train
 

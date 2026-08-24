@@ -29,11 +29,20 @@ The test split is the exception: its source crops sit in
 used for caching the training and validation splits, expects `filtered_plate`.
 
 **The test split as archived is incomplete on the source side.** All 3,258
-samples have a mask, a glyph, and a label, but only 2,542 have a source image —
-716 stems (22.0%) are missing one. The published results cover all 3,258, so the
-originals existed at generation time; what survived the move to this archive did
-not. `scripts/infer.py` reports these as skipped rather than failing, so a run
-over the test split yields 2,542 images unless the missing sources are restored.
+samples have a mask, a glyph, and a label, but this copy holds only 2,542 source
+images — 716 stems (22.0%) are absent. The complete set exists on the machine the
+data was originally prepared on; this is an incomplete transfer, not a loss.
+`docs/test_missing_sources.txt` lists exactly which stems to copy across, so the
+gap can be closed without moving the whole split:
+
+```bash
+rsync -av --files-from=<(sed 's/$/.png/' docs/test_missing_sources.txt) \
+      <source-host>:/path/to/test/filtered_plate/ \
+      data/test/cropped_plates_png_512/
+```
+
+Until then `scripts/infer.py` reports the missing stems as skipped rather than
+failing, so a run over the test split yields 2,542 images.
 `scripts/eval_image.py` likewise scores only the pairs it can form and prints how
 many it dropped.
 
