@@ -11,3 +11,5 @@ cache/
 *.safetensors
 !configs/*.yaml
 .DS_Store
+!weights/README.md
+!weights/checksums.txt

@@ -19,6 +19,8 @@ Measured over the full test split of 3,258 images: **ACC 0.8109, NED 0.9549**.
 
 ```
 configs/lp2025_train.yaml    training configuration, with the provenance of every value
+scripts/check_data.py        verify a checkout before running anything
+scripts/reproduce.sh         generate and evaluate in one go
 scripts/build_cache.sh       encode a split into VAE latents + text embeddings
 scripts/train.sh             fine-tune the LoRA adapter
 scripts/infer.py             generate edited plates
@@ -63,11 +65,25 @@ slightly differently from what this code does now. Set it to `false` in
 `src/train/model.py` if you want to match the released checkpoint's conditions
 exactly.
 
-**2. ODM loss weights** (training only). The perceptual text loss needs its
-pretrained encoder at `weights/epoch_100.pt` (~710 MB). Inference does not.
+**2. Weights.** See [weights/README.md](weights/README.md) for what to download,
+where to put it, and SHA-256 checksums. Inference needs the adapter; `eval_ocr.py`
+needs the recogniser; only training needs the ODM loss encoder.
 
 **3. Data.** See [docs/DATA.md](docs/DATA.md). The layout is four parallel
-directories keyed by a shared stem:
+directories keyed by a shared stem. Note where each split lives: the test split
+sits at the archive root, train and val under `data/`.
+
+```
+LP2025/                          <- pass this as --data_root for the test split
+    filtered_plate/              3,918 source crops
+    partial_glyphs/              3,258
+    partial_masks/               3,258
+    partial_labels_txt/          3,258
+    data/train/                  <- --data_root for training data (2,569)
+    data/val/                    <- 620
+```
+
+Each split's four directories:
 
 ```
 data/<split>/
@@ -85,6 +101,25 @@ instead of `filtered_plate/`; `scripts/infer.py` accepts either.
 | train | 2,569 | |
 | val | 620 | |
 | test | 3,258 | sources in `filtered_plate/` (3,918, a superset) |
+
+Check the checkout before spending GPU time on it:
+
+```bash
+python scripts/check_data.py --root /path/to/LP2025 --weights weights
+```
+
+It reports per-split counts and exits non-zero if a glyph has no source image or
+a required weight is absent — both of which otherwise fail late and quietly.
+
+## Reproduce the published numbers
+
+```bash
+bash scripts/reproduce.sh /path/to/LP2025 /path/to/deep-text-recognition-benchmark
+```
+
+Generation, then both evaluations. Expect **ACC 0.8109 / NED 0.9549** on the full
+test split of 3,258 images. Generation runs at about 17 s per image on an RTX
+4090, so the full split takes roughly 15 hours; set `LIMIT=50` to sample first.
 
 ## Train
 
