@@ -26,7 +26,9 @@ Requires the deep-text-recognition-benchmark code on PYTHONPATH:
 import argparse
 import os
 import re
+import shutil
 import sys
+import tempfile
 
 import torch
 import torch.utils.data
@@ -91,6 +93,23 @@ def main():
     model.load_state_dict(torch.load(o.saved_model, map_location=dev, weights_only=False))
     model.eval()
 
+    # RawDataset walks the folder recursively and takes everything it finds, so
+    # anything sitting beside the outputs is scored too: the *_compare strips
+    # written by infer.py --compare, and the _fid_* directories eval_image.py
+    # leaves behind. Filtering after inference is not enough — what else is in
+    # the batch changes the predictions, and on this test set that moved 22 of
+    # 3,258 readings. Build a flat directory of exactly the images to score.
+    scored = sorted(f for f in os.listdir(o.image_folder)
+                    if f.lower().endswith((".png", ".jpg", ".jpeg"))
+                    and not os.path.splitext(f)[0].endswith("_compare"))
+    if not scored:
+        raise SystemExit(f"no images to score in {o.image_folder}")
+    staged = tempfile.mkdtemp(prefix="eval_ocr_")
+    for f in scored:
+        os.symlink(os.path.abspath(os.path.join(o.image_folder, f)),
+                   os.path.join(staged, f))
+    o.image_folder = staged
+
     coll = AlignCollate(imgH=o.imgH, imgW=o.imgW, keep_ratio_with_pad=o.PAD)
     dl = torch.utils.data.DataLoader(
         RawDataset(root=o.image_folder, opt=o), batch_size=o.batch_size,
@@ -106,8 +125,6 @@ def main():
             _, idx = model(imgs, tfp, is_train=False).max(2)
             for p, s in zip(paths, conv.decode(idx, length)):
                 stem = os.path.splitext(os.path.basename(p))[0]
-                if stem.endswith("_compare"):        # skip the visual strips
-                    continue
                 pred = norm(s[:s.find("[s]")] if "[s]" in s else s)
                 rows.append((stem, gt_from_name(stem), pred))
 
@@ -119,6 +136,8 @@ def main():
     print(f"n = {len(rows)}")
     print(f"ACC = {acc:.4f}")
     print(f"NED = {ned:.4f}")
+
+    shutil.rmtree(staged, ignore_errors=True)
 
     if a.out:
         with open(a.out, "w") as f:

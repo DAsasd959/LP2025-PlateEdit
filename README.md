@@ -13,7 +13,7 @@ inference, and the three evaluation metrics used in the paper.
 
 Four selected test samples where the recogniser reads the edited plate
 correctly. Over the full test split of 3,258 images the model reaches
-**ACC 0.8109, NED 0.9549** — so roughly one plate in five is not read back as
+**ACC 0.8112, NED 0.9552** — so roughly one plate in five is not read back as
 its target, typically through a single stroke-level confusion such as 3 → 1 or
 7 → 1 rather than a wholly wrong character.
 
@@ -122,7 +122,7 @@ a required weight is absent — both of which otherwise fail late and quietly.
 bash scripts/reproduce.sh /path/to/LP2025 /path/to/deep-text-recognition-benchmark
 ```
 
-Generation, then both evaluations. Expect **ACC 0.8109 / NED 0.9549** on the full
+Generation, then both evaluations. Expect **ACC 0.8112 / NED 0.9552** on the full
 test split of 3,258 images. Generation runs at about 17 s per image on an RTX
 4090, so the full split takes roughly 15 hours; set `LIMIT=50` to sample first.
 
@@ -184,7 +184,7 @@ python scripts/eval_ocr.py \
     --image_folder outputs/lp2025_test \
     --saved_model weights/trba_lp2025/best_accuracy.pth \
     --dtr_root ../deep-text-recognition-benchmark
-# on the released checkpoint's test outputs: n = 3258, ACC = 0.8109, NED = 0.9549
+# on the released checkpoint's test outputs: n = 3258, ACC = 0.8112, NED = 0.9552
 
 # image fidelity
 python scripts/eval_image.py \
@@ -200,11 +200,11 @@ repository:
 
 | Metric | Published | This repository |
 |---|---:|---:|
-| FID ↓ | 4.78 | 4.2050 |
+| FID ↓ | 4.78 | 4.2025 |
 | Full LPIPS ↓ | 0.081 | 0.0790 |
 | Region LPIPS ↓ | 0.062 | 0.0648 |
-| ACC ↑ | 0.801 | 0.8106 |
-| NED ↑ | 0.952 | 0.9547 |
+| ACC ↑ | 0.801 | 0.8112 |
+| NED ↑ | 0.952 | 0.9552 |
 
 n = 3,258. The residual spread is generation randomness, not a difference in
 measurement: the original inference script seeded neither the diffusion
@@ -214,7 +214,7 @@ seeds both, which makes a run here reproducible but means it will not land
 exactly on a number produced by an unseeded run.
 
 Cross-checked against the project's own scorer: `trba_accned.py` gives
-ACC 0.8106 / NED 0.9547 on the same images, against 0.8109 / 0.9549 from
+ACC 0.8109 / NED 0.9550 on the same images, against 0.8112 / 0.9552 from
 `scripts/eval_ocr.py` — a one-image difference out of 3,258.
 
 ### Reading the metrics
@@ -238,6 +238,15 @@ the original text there is a ground-truth image and lower is better. When
 characters were deliberately replaced, the edited region is *supposed* to differ
 from the source, so the value carries no quality information. Pass `--edit` and
 the output says so.
+
+**Score text before, or independently of, image fidelity.** `eval_image.py`
+leaves `_fid_real` and `_fid_gen` directories inside `--gen_dir`, and the
+recogniser's dataset loader walks the output folder recursively. `eval_ocr.py`
+now stages exactly the images it scores, so either order is safe here — but the
+same trap catches the upstream `trba_accned.py`, which scores whatever it finds:
+pointed at a folder that also holds the `*_compare` strips it reports ACC 0.4248
+where the correct figure is 0.8112, because every strip is read as a plate whose
+ground truth is the word "compare".
 
 **ACC is a lower bound, not an estimate.** The recogniser errs in one direction:
 in a 409-sample human study on the CCPD extension of this work it never credited
