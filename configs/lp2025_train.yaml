@@ -1,0 +1,64 @@
+# LP2025 partial-editing fine-tune.
+#
+# Provenance of every value is marked:
+#   [logged]   recovered from the original run's wandb record
+#   [artifact] read out of the released adapter_config.json / README.md
+#   [lineage]  not recorded for that run; taken from the same script's
+#              nearest surviving config (runs_word_fill_plate_512/20260726-184929)
+#
+# The original run directory (runs_word_fill_plate_512/20260419-180408) was
+# deleted, so the two [lineage] blocks below are the only values that are not
+# attested for the released checkpoint. See docs/REPRODUCIBILITY.md.
+
+dtype: bfloat16                                   # [artifact] bnb_4bit_compute_dtype
+flux_path: ./FLUX.1-Fill-dev-nf4                  # [artifact] NF4-quantised base
+model_type: flux_fill
+
+train:
+  batch_size: 1                                   # [logged] epoch boundary every 2569 steps
+  accumulate_grad_batches: 1                      # [lineage]
+  condition_type: word_fill                       # [logged]
+  dataloader_workers: 8                           # [lineage]
+  gradient_checkpointing: true                    # [lineage]
+  max_steps: 43784                                # [logged] the run reached epoch 17
+                                                  # the released checkpoint is step 27606
+
+  dataset:
+    type: word
+    image_size: 512                               # [lineage]
+    train_cache_root: ./cache/lp_train            # 2,569 samples  [logged]
+    valid_cache_root: ./cache/lp_val              #   620 samples  [logged]
+    val_check_interval: 1284                      # [logged] validation ran every 1284 steps
+    limit_val_batches: 1000                       # [lineage]
+
+  lora_config:                                    # all [artifact]
+    r: 32
+    lora_alpha: 32
+    init_lora_weights: gaussian
+    lora_dropout: 0.0
+    use_dora: false
+    use_rslora: false
+    target_modules: (.*x_embedder|.*(?<!single_)transformer_blocks\.[0-9]+\.norm1\.linear|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_k|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_q|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_v|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_out\.0|.*(?<!single_)transformer_blocks\.[0-9]+\.ff\.net\.2|.*single_transformer_blocks\.[0-9]+\.norm\.linear|.*single_transformer_blocks\.[0-9]+\.proj_mlp|.*single_transformer_blocks\.[0-9]+\.proj_out|.*single_transformer_blocks\.[0-9]+\.attn.to_k|.*single_transformer_blocks\.[0-9]+\.attn.to_q|.*single_transformer_blocks\.[0-9]+\.attn.to_v|.*single_transformer_blocks\.[0-9]+\.attn.to_out)
+
+  optimizer:                                      # [lineage] — prodigyopt was in the
+    type: Prodigy                                 # recorded environment and every
+    params:                                       # sibling run used these values,
+      lr: 1                                       # but the run's own config is gone
+      weight_decay: 0.01
+      safeguard_warmup: true
+      use_bias_correction: true
+
+  odm_loss:                                       # [lineage] — the run logged loss_odm,
+    modelpath: ./weights/epoch_100.pt             # so the term was active; the weights
+    w_loss_1: 20                                  # themselves are not attested
+    w_loss_2: 20
+    w_loss_3: 20
+    w_loss_4: 20
+    w_loss_f: 1
+
+  sample_interval: 1000                           # [lineage]
+  save_interval: 1284                             # [lineage] set so that step 27606 lands on a save
+  save_path: runs_lp2025
+
+  wandb:
+    project: LP2025-PlateEdit

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+wandb/
+runs_*/
+outputs/
+cache/
+*.pt
+*.pth
+*.safetensors
+!configs/*.yaml
+.DS_Store

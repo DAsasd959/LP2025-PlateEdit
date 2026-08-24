@@ -1,0 +1,28 @@
+# Pinned to the versions recorded in the original training run
+# (wandb/run-20260419_180409-gloox8hm/files/requirements.txt).
+# Python 3.10 · CUDA 12.2 · single NVIDIA RTX 4090 (24 GB)
+torch==2.4.0
+torchvision==0.19.0
+diffusers==0.32.2
+transformers==4.57.1
+peft==0.17.1
+accelerate==1.10.1
+bitsandbytes==0.48.1
+lightning==2.2.4
+prodigyopt==1.1.2
+safetensors
+sentencepiece
+protobuf
+opencv-python
+pillow
+numpy
+pyyaml
+tqdm
+wandb
+
+# Evaluation only
+lpips
+pytorch-fid
+lmdb
+nltk
+natsort
