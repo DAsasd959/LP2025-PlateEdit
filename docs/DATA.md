@@ -1,5 +1,32 @@
 # Data
 
+## Download
+
+The dataset is published as a release alongside the code:
+
+```bash
+BASE=https://github.com/DAsasd959/LP2025-PlateEdit/releases/download/data-v1.0
+mkdir -p data && cd data
+curl -L -O $BASE/lp2025_train.tar.gz     #  20 MB
+curl -L -O $BASE/lp2025_val.tar.gz       #  36 MB
+curl -L -O $BASE/lp2025_test.tar.gz      # 185 MB
+curl -L -O $BASE/data_checksums.txt
+sha256sum -c data_checksums.txt
+
+mkdir -p train val && tar -xzf lp2025_train.tar.gz -C train
+tar -xzf lp2025_val.tar.gz -C val
+cd .. && tar -xzf data/lp2025_test.tar.gz        # test extracts to the root
+```
+
+That last line is deliberate: the test split's four directories sit at the
+archive root, while train and val live under `data/`. Extracting the test
+tarball into `data/` instead would leave `check_data.py` reporting it missing.
+
+The archives hold only what inference and training read — the source crops and
+the three partial-editing conditions. The wider archive this was cut from also
+carries unfiltered crops, detector labels, and visualisations, none of which any
+script here opens.
+
 ## LP2025
 
 Real photographs of Taiwanese motorcycle and car plates, cropped to the plate.

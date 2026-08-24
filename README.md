@@ -71,7 +71,9 @@ exactly.
 where to put it, and SHA-256 checksums. Inference needs the adapter; `eval_ocr.py`
 needs the recogniser; only training needs the ODM loss encoder.
 
-**3. Data.** See [docs/DATA.md](docs/DATA.md). The layout is four parallel
+**3. Data.** Download it from the `data-v1.0` release — 241 MB in three
+archives; see [docs/DATA.md](docs/DATA.md) for the commands and for where each
+one extracts to. The layout is four parallel
 directories keyed by a shared stem. Note where each split lives: the test split
 sits at the archive root, train and val under `data/`.
 
