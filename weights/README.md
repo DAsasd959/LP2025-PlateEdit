@@ -10,6 +10,17 @@ them and place them here so the paths below resolve.
 | `trba_lp2025/best_accuracy.pth` | 191 MB | `c101257845ca6002ce7c9803387a4facc6b8b8173f9a44ae4df21c0287fa0eea` | `eval_ocr.py` |
 | `epoch_100.pt` | 677 MB | `a7e329c97cae19e4fd3ad1b5867036952477dd09e53b90f39b2c68b100060156` | training only |
 
+Download them from the repository's release page:
+
+```bash
+mkdir -p lp2025_27606 trba_lp2025
+BASE=<RELEASE_URL>
+curl -L -o lp2025_27606/adapter_model.safetensors  $BASE/adapter_model.safetensors
+curl -L -o lp2025_27606/adapter_config.json        $BASE/adapter_config.json
+curl -L -o trba_lp2025/best_accuracy.pth           $BASE/best_accuracy.pth
+curl -L -o epoch_100.pt                            $BASE/epoch_100.pt
+```
+
 Verify after downloading:
 
 ```bash

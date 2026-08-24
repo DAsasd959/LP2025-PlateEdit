@@ -11,5 +11,10 @@ cache/
 *.safetensors
 !configs/*.yaml
 .DS_Store
+
+# Weights are release assets, not tracked files. Ignore the directory wholesale
+# rather than by extension: an extension list lets adapter_config.json slip
+# through and leaves the directory showing as untracked.
+weights/*
 !weights/README.md
 !weights/checksums.txt
