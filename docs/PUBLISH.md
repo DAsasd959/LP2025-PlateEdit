@@ -22,8 +22,7 @@ or create the repository through the web interface and push by hand:
 
 ```bash
 git remote add origin https://github.com/<user>/LP2025-PlateEdit.git
-git branch -M main
-git push -u origin main
+git push -u origin HEAD
 ```
 
 ## 2. Upload the weights as a release

@@ -14,7 +14,7 @@ Download them from the repository's release page:
 
 ```bash
 mkdir -p lp2025_27606 trba_lp2025
-BASE=<RELEASE_URL>
+BASE=https://github.com/DAsasd959/LP2025-PlateEdit/releases/download/v1.0
 curl -L -o lp2025_27606/adapter_model.safetensors  $BASE/adapter_model.safetensors
 curl -L -o lp2025_27606/adapter_config.json        $BASE/adapter_config.json
 curl -L -o trba_lp2025/best_accuracy.pth           $BASE/best_accuracy.pth
