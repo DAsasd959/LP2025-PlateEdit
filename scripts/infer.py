@@ -13,6 +13,8 @@ Expected input layout (one file per sample, matched by stem):
 
     <data_root>/
         filtered_plate/       <stem>.jpg   source plate crop
+                                           (the test split names this
+                                            cropped_plates_png_512/<stem>.png)
         partial_masks/        <stem>.png   region to repaint, white = edit
         partial_glyphs/       <stem>.png   rendered target glyph
         partial_labels_txt/   <stem>.txt   target text, first whitespace token
@@ -61,6 +63,8 @@ SIZE = 512
 def load_model(config_path, lora_path, flux_dir):
     with open(config_path) as f:
         config = yaml.safe_load(f)
+    # No odm_loss_config: the perceptual text loss is a training-time term and
+    # loading its encoder here would pull in a 710 MB checkpoint for nothing.
     model = OminiModelFIll(
         flux_pipe_id=flux_dir,
         lora_config=config["train"]["lora_config"],
@@ -68,8 +72,7 @@ def load_model(config_path, lora_path, flux_dir):
         dtype=getattr(torch, config["dtype"]),
         optimizer_config=config["train"]["optimizer"],
         model_config=config.get("model", {}),
-        gradient_checkpointing=True,
-        byt5_encoder_config=None,
+        gradient_checkpointing=False,
     )
     # PEFT stores the adapter with a "default" sub-module and a "transformer."
     # prefix that the bare transformer does not have; rename before loading.
@@ -103,10 +106,20 @@ def main():
     a = ap.parse_args()
 
     d = {k: os.path.join(a.data_root, k) for k in
-         ("filtered_plate", "partial_masks", "partial_glyphs", "partial_labels_txt")}
+         ("partial_masks", "partial_glyphs", "partial_labels_txt")}
+    # The source crops are named differently per split: train and val ship
+    # filtered_plate/*.jpg, the test split ships cropped_plates_png_512/*.png.
+    for cand in ("filtered_plate", "cropped_plates_png_512"):
+        p = os.path.join(a.data_root, cand)
+        if os.path.isdir(p):
+            d["source"] = p
+            break
     for k, p in d.items():
         if not os.path.isdir(p):
             raise SystemExit(f"missing input directory: {p}")
+    if "source" not in d:
+        raise SystemExit(f"no source images under {a.data_root}: expected "
+                         f"filtered_plate/ or cropped_plates_png_512/")
 
     stems = sorted(os.path.splitext(os.path.basename(p))[0]
                    for p in glob(os.path.join(d["partial_glyphs"], "*.png")))
@@ -120,11 +133,12 @@ def main():
     skipped = []
 
     for stem in tqdm(stems, desc="generating"):
-        img_p = os.path.join(d["filtered_plate"], stem + ".jpg")
+        img_p = next((q for q in (os.path.join(d["source"], stem + e)
+                                  for e in (".jpg", ".png")) if os.path.exists(q)), None)
         msk_p = os.path.join(d["partial_masks"], stem + ".png")
         gly_p = os.path.join(d["partial_glyphs"], stem + ".png")
         lbl_p = os.path.join(d["partial_labels_txt"], stem + ".txt")
-        if not all(os.path.exists(p) for p in (img_p, msk_p, gly_p, lbl_p)):
+        if img_p is None or not all(os.path.exists(p) for p in (msk_p, gly_p, lbl_p)):
             skipped.append((stem, "missing file"))
             continue
         with open(lbl_p) as f:

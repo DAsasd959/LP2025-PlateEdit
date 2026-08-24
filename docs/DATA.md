@@ -23,6 +23,20 @@ data/<split>/
 The sample list is derived from `partial_glyphs/*.png`, so a stem missing from
 that directory is silently absent from training.
 
+The test split is the exception: its source crops sit in
+`cropped_plates_png_512/<stem>.png`, not `filtered_plate/<stem>.jpg`.
+`scripts/infer.py` looks for both names; `src/data/data_real.py`, which is only
+used for caching the training and validation splits, expects `filtered_plate`.
+
+**The test split as archived is incomplete on the source side.** All 3,258
+samples have a mask, a glyph, and a label, but only 2,542 have a source image —
+716 stems (22.0%) are missing one. The published results cover all 3,258, so the
+originals existed at generation time; what survived the move to this archive did
+not. `scripts/infer.py` reports these as skipped rather than failing, so a run
+over the test split yields 2,542 images unless the missing sources are restored.
+`scripts/eval_image.py` likewise scores only the pairs it can form and prints how
+many it dropped.
+
 ### Split sizes
 
 | Split | Samples | Note |

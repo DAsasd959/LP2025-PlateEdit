@@ -9,8 +9,11 @@ untouched.
 This repository is the LP2025 half of the work: data preparation, training,
 inference, and the three evaluation metrics used in the paper.
 
-<!-- Add a qualitative figure here: source | output | glyph | mask.
-     `scripts/infer.py --compare` writes exactly that strip per sample. -->
+![source, generated, glyph condition, mask](docs/teaser.png)
+
+Four randomly drawn test samples, sharpest half of the split, shown without
+cherry-picking: rows 1 and 3 reproduce the target text, rows 2 and 4 do not.
+Measured over the full test split of 3,258 images: **ACC 0.8109, NED 0.9549**.
 
 ## What is here
 
@@ -71,11 +74,14 @@ data/<split>/
     partial_labels_txt/   <stem>.txt    target text
 ```
 
-| Split | Samples |
-|---|---:|
-| train | 2,569 |
-| val | 620 |
-| test | 3,258 |
+The test split names its source directory `cropped_plates_png_512/<stem>.png`
+instead of `filtered_plate/`; `scripts/infer.py` accepts either.
+
+| Split | Samples | Note |
+|---|---:|---|
+| train | 2,569 | |
+| val | 620 | |
+| test | 3,258 | only 2,542 have a source image in this archive — see docs/DATA.md |
 
 ## Train
 
@@ -112,6 +118,7 @@ python scripts/eval_ocr.py \
     --image_folder outputs/lp2025_test \
     --saved_model weights/trba_lp2025/best_accuracy.pth \
     --dtr_root ../deep-text-recognition-benchmark
+# on the released checkpoint's test outputs: n = 3258, ACC = 0.8109, NED = 0.9549
 
 # image fidelity
 python scripts/eval_image.py \
@@ -155,7 +162,10 @@ script's nearest surviving configuration rather than from that run.
 
 ## License
 
-No license file is included yet. Add one before publishing: without it, others
-have no permission to use the code. Note that FLUX.1-Fill-dev carries its own
-non-commercial license, which governs the base weights independently of whatever
-you choose here.
+The base model, FLUX.1-Fill-dev, is distributed by Black Forest Labs on Hugging
+Face under the FLUX.1 [dev] Non-Commercial License. That license governs the
+weights you download and the outputs you generate with them, independently of
+this repository — in particular it rules out commercial use. Read it before
+using anything here in a product.
+
+No license is declared for the code in this repository.
