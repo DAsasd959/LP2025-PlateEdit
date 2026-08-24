@@ -28,35 +28,21 @@ The test split is the exception: its source crops sit in
 `scripts/infer.py` looks for both names; `src/data/data_real.py`, which is only
 used for caching the training and validation splits, expects `filtered_plate`.
 
-**The test split as archived is incomplete on the source side.** All 3,258
-samples have a mask, a glyph, and a label, but this copy holds only 2,542 source
-images — 716 stems (22.0%) are absent. The complete set exists on the machine the
-data was originally prepared on; this is an incomplete transfer, not a loss.
-`docs/test_missing_sources.txt` lists exactly which stems to copy across, so the
-gap can be closed without moving the whole split:
+**Where the test split lives.** The evaluated test set is the one at the top
+level of the LP2025 archive, not the partial copy under `data/test/`:
 
-```bash
-rsync -av --files-from=<(sed 's/$/.png/' docs/test_missing_sources.txt) \
-      <source-host>:/path/to/test/filtered_plate/ \
-      data/test/cropped_plates_png_512/
+```
+LP2025/
+    filtered_plate/        3,918 source crops (a superset of the test samples)
+    partial_glyphs/        3,258
+    partial_masks/         3,258
+    partial_labels_txt/    3,258
 ```
 
-Until then `scripts/infer.py` reports the missing stems as skipped rather than
-failing, so a run over the test split yields 2,542 images.
-`scripts/eval_image.py` likewise scores only the pairs it can form and prints how
-many it dropped.
-
-### Split sizes
-
-| Split | Samples | Note |
-|---|---:|---|
-| train | 2,569 | filtered from 13,638 raw crops |
-| val | 620 | |
-| test | 3,258 | |
-
-`filtered_plate` is a quality-filtered subset of `cropped_plates`; the filter
-removes crops too small, too skewed, or too dark for the target character to be
-legible at 512×512.
+All 3,258 samples have a source image there — the set is complete, and the 3,258
+published outputs correspond exactly to it. The `data/test/` tree is an earlier
+partial copy holding 2,542 of the sources under a different directory name; point
+`--data_root` at the top-level archive rather than at `data/test/`.
 
 ## Recogniser data
 

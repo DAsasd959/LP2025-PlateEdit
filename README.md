@@ -48,17 +48,20 @@ later releases changed the FLUX transformer's forward signature that
 
 ## Setup
 
-**1. Base model.** Download FLUX.1-Fill-dev and quantise it to NF4, or use a
-prepared NF4 copy. Point every script at that directory:
+**1. Base model.** Download **FLUX.1 Fill [dev]** from Hugging Face in its normal
+full-precision form. `src/train/model.py` quantises the transformer to NF4 at
+load time through `BitsAndBytesConfig`, so no pre-quantised copy is needed:
 
 ```bash
-export FLUX_DIR=./FLUX.1-Fill-dev-nf4
+export FLUX_DIR=./FLUX.1-Fill-dev
 ```
 
-The adapter was trained on the NF4-quantised base with `bnb_4bit_quant_type=nf4`,
-`bnb_4bit_use_double_quant=false`, and `bnb_4bit_compute_dtype=bfloat16`. Loading
-it onto an unquantised or double-quantised base changes the numerics it was
-tuned against.
+One caveat worth knowing before you compare numbers. The released adapter's model
+card records `bnb_4bit_use_double_quant: false`, but the loader in this
+repository sets it to `true`. The original run therefore quantised the base
+slightly differently from what this code does now. Set it to `false` in
+`src/train/model.py` if you want to match the released checkpoint's conditions
+exactly.
 
 **2. ODM loss weights** (training only). The perceptual text loss needs its
 pretrained encoder at `weights/epoch_100.pt` (~710 MB). Inference does not.
@@ -81,7 +84,7 @@ instead of `filtered_plate/`; `scripts/infer.py` accepts either.
 |---|---:|---|
 | train | 2,569 | |
 | val | 620 | |
-| test | 3,258 | this copy holds 2,542 source images; the missing 716 are listed in docs/test_missing_sources.txt |
+| test | 3,258 | sources in `filtered_plate/` (3,918, a superset) |
 
 ## Train
 
