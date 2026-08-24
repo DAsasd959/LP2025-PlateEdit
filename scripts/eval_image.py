@@ -19,6 +19,15 @@ Two things about these numbers are easy to get wrong, so they are enforced here:
    the edited region is supposed to differ from the source, so a higher value
    carries no quality information. Pass --edit to have that stated in the
    output rather than silently reported as if it were a quality score.
+
+Region LPIPS follows the definition used for the published numbers: both images
+are multiplied by the mask and LPIPS is taken over the full 512x512 result, so
+everything outside the mask is identical black in both inputs. This is not the
+same as cropping to the mask and comparing the crops — cropping gave 0.22 on the
+released outputs where the masked-image definition gives 0.062, because a crop
+removes the large identical region that otherwise dominates the score. Two papers
+reporting "region LPIPS" can therefore differ by 3x on identical images; the
+number is only meaningful alongside its definition.
 """
 import argparse
 import os
@@ -35,18 +44,9 @@ def to_tensor(pil):
     return torch.from_numpy(a).permute(2, 0, 1)[None] * 2 - 1
 
 
-def mask_bbox(mask_pil):
-    m = np.array(mask_pil.convert("L").resize((SIZE, SIZE)))
-    ys, xs = np.where(m > 127)
-    if len(xs) == 0:
-        return None
-    x0, x1 = int(xs.min()), int(xs.max()) + 1
-    y0, y1 = int(ys.min()), int(ys.max()) + 1
-    if x1 - x0 < 8:
-        x1 = min(SIZE, x0 + 8)
-    if y1 - y0 < 8:
-        y1 = min(SIZE, y0 + 8)
-    return x0, y0, x1, y1
+def load_mask(mask_pil, dev):
+    m = np.array(mask_pil.convert("L").resize((SIZE, SIZE)), dtype=np.float32) / 255.0
+    return torch.from_numpy(m)[None, None].to(dev).repeat(1, 3, 1, 1)
 
 
 def main():
@@ -101,16 +101,9 @@ def main():
             if a.mask_dir:
                 mp = os.path.join(a.mask_dir, stem + ".png")
                 if os.path.exists(mp):
-                    bb = mask_bbox(Image.open(mp))
-                    if bb:
-                        x0, y0, x1, y1 = bb
-                        ra, rb = ta[:, :, y0:y1, x0:x1], tb[:, :, y0:y1, x0:x1]
-                        if min(ra.shape[-2:]) < 64:      # LPIPS backbone needs size
-                            ra = torch.nn.functional.interpolate(
-                                ra, (64, 64), mode="bilinear", align_corners=False)
-                            rb = torch.nn.functional.interpolate(
-                                rb, (64, 64), mode="bilinear", align_corners=False)
-                        region.append(float(net(ra, rb)))
+                    m = load_mask(Image.open(mp), dev)
+                    if float(m.sum()) > 0:
+                        region.append(float(net(ta * m, tb * m)))
 
     n = len(full)
     if n == 0:

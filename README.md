@@ -165,6 +165,30 @@ python scripts/eval_image.py \
     --mask_dir data/test/partial_masks
 ```
 
+### Verified against the published numbers
+
+Scoring the released checkpoint's own test outputs with the scripts in this
+repository:
+
+| Metric | Published | This repository |
+|---|---:|---:|
+| FID ↓ | 4.78 | 4.2050 |
+| Full LPIPS ↓ | 0.081 | 0.0790 |
+| Region LPIPS ↓ | 0.062 | 0.0648 |
+| ACC ↑ | 0.801 | 0.8106 |
+| NED ↑ | 0.952 | 0.9547 |
+
+n = 3,258. The residual spread is generation randomness, not a difference in
+measurement: the original inference script seeded neither the diffusion
+generator nor the choice of prompt template, so two runs of the same checkpoint
+produce different images and land about a point apart in ACC. `scripts/infer.py`
+seeds both, which makes a run here reproducible but means it will not land
+exactly on a number produced by an unseeded run.
+
+Cross-checked against the project's own scorer: `trba_accned.py` gives
+ACC 0.8106 / NED 0.9547 on the same images, against 0.8109 / 0.9549 from
+`scripts/eval_ocr.py` — a one-image difference out of 3,258.
+
 ### Reading the metrics
 
 Two of these numbers are routinely misread, so state them carefully:
@@ -174,11 +198,18 @@ image set we measured 7.28 at N=200 against 3.85 at N=1,000 — a factor of two
 from sample size alone. Only compare FID values computed at the same N, and
 always report N.
 
-**Region LPIPS is a quality measure only for reconstruction.** When the target
-text equals the original text there is a ground-truth image and lower is better.
-When characters were deliberately replaced, the edited region is *supposed* to
-differ from the source, so the value carries no quality information. Pass
-`--edit` and the output says so.
+**Region LPIPS depends entirely on how "region" is defined.** Here both images
+are multiplied by the mask and LPIPS is taken over the full 512x512 result, which
+is the definition behind the published numbers. Cropping to the mask instead
+gives 0.22 on the same images where this gives 0.065 — a factor of three, because
+a crop discards the large identical area that otherwise dominates the score.
+Never compare a region LPIPS against one computed by a different convention.
+
+It is also a quality measure only for reconstruction. When the target text equals
+the original text there is a ground-truth image and lower is better. When
+characters were deliberately replaced, the edited region is *supposed* to differ
+from the source, so the value carries no quality information. Pass `--edit` and
+the output says so.
 
 **ACC is a lower bound, not an estimate.** The recogniser errs in one direction:
 in a 409-sample human study on the CCPD extension of this work it never credited
