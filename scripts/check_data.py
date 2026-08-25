@@ -28,6 +28,37 @@ def stems(d):
     return {os.path.splitext(f)[0] for f in os.listdir(d)} if os.path.isdir(d) else None
 
 
+def unreadable(d, sample=200):
+    """Count files that cannot actually be opened.
+
+    Counting filenames is not enough. An archive packed without dereferencing
+    symlinks extracts into links pointing at paths that exist only on the
+    machine it was built on: the listing looks complete, every count matches,
+    and training fails on the first image. Open a sample and find out.
+    """
+    fs = sorted(os.listdir(d))
+    if not fs:
+        return 0, 0
+    step = max(1, len(fs) // sample)
+    checked = fs[::step]
+    bad = 0
+    for f in checked:
+        p = os.path.join(d, f)
+        if not os.path.exists(p):          # dangling symlink
+            bad += 1
+            continue
+        try:
+            if os.path.getsize(p) == 0:
+                bad += 1
+                continue
+            with open(p, "rb") as fh:
+                if not fh.read(16):
+                    bad += 1
+        except OSError:
+            bad += 1
+    return bad, len(checked)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="LP2025 archive root")
@@ -59,6 +90,12 @@ def main():
             short = got["partial_glyphs"] - got["filtered_plate"]
             bad.append(f"{name}: {len(usable)} usable, expected {exp}"
                        + (f"; {len(short)} glyphs have no source image" if short else ""))
+        for d in NEED:
+            n_bad, n_checked = unreadable(os.path.join(root, d))
+            if n_bad:
+                print(f"{'':7}{d}: {n_bad} of {n_checked} sampled files could not be "
+                      f"opened — dangling links or empty files")
+                bad.append(f"{name}/{d}: {n_bad}/{n_checked} sampled files unreadable")
 
     print()
     for rel, what, required in WEIGHTS:
