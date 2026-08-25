@@ -1,0 +1,79 @@
+# Stage 1 — pretraining on synthetic Taiwanese plates.
+#
+# The paper trains in two stages: synthetic pretraining, then fine-tuning on
+# real photographs (configs/lp2025_train.yaml). This file is the first stage.
+#
+# WHY THE STEP COUNT IS WHAT IT IS
+#   Taiwanese plates are alphanumeric only — the corpus this data was drawn
+#   from (41,513 plates) uses exactly `-0123456789A-Z`, no CJK. That matters,
+#   because the matching CCPD stage-1 run needed 20,000 steps solely to give
+#   each of 31 Chinese province glyphs enough updates. For 36 alphanumeric
+#   classes the earlier CCPD probe reached 40/40 correct edits, with stroke
+#   weight indistinguishable from real plates, at ~74 updates per class.
+#
+#   19,500 steps is one full epoch (batch 1, no accumulation), giving roughly
+#   1,100 updates per class — about 15x the level already shown to be enough.
+#   It is the safe choice, not the minimum one. If the schedule is tight,
+#   8,000 steps (~440/class) or even 3,000 (~166/class) remain above the
+#   demonstrated threshold. Pass a shorter run as a config override rather
+#   than editing this file, so the default stays comparable to CCPD.
+#
+# WHY THERE IS NO reuse_lora_path HERE
+#   Stage 1 starts from the base FLUX weights. Stage 2 is what resumes, via
+#   its own reuse_lora_path. Do not warm-start this stage: it uses Prodigy,
+#   and Prodigy suppresses its learned rate when started from warm weights —
+#   the reason stage 2 switches to AdamW (paper Sec 4.1).
+flux_path: ./FLUX.1-Fill-dev                      # set FLUX_QUANTIZE=none on ROCm
+dtype: "bfloat16"
+model_type: flux_fill
+
+train:
+  batch_size: 1
+  accumulate_grad_batches: 1
+  dataloader_workers: 8
+  # 1 step = 1 optimizer step = 1 image (batch, accumulation and devices all 1)
+  # 19,500 steps = one pass over the training split, nothing seen twice.
+  max_steps: 19500
+  save_interval: 4000
+  sample_interval: 500
+  gradient_checkpointing: true                    # set false if VRAM allows; ~1.3x faster
+  save_path: runs_lp2025_stage1
+
+  condition_type: "word_fill"
+  # limit_val_batches belongs at this level, not under dataset — train.py reads
+  # training_config.get("limit_val_batches"). Nested, it is silently ignored and
+  # every validation walks the whole split.
+  limit_val_batches: 100
+  dataset:
+    train_cache_root: ./cache/stage1_train        # 19,500 synthetic samples
+    valid_cache_root: ./cache/stage1_val          #    500 held out
+    type: "word"
+    glyph_scale: 1
+    image_size: 512
+    val_check_interval: 2000
+
+  wandb:
+    project: "LP2025-PlateEdit"
+
+  lora_config:
+    r: 32
+    lora_alpha: 32
+    init_lora_weights: "gaussian"
+    target_modules: "(.*x_embedder|.*(?<!single_)transformer_blocks\\.[0-9]+\\.norm1\\.linear|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_k|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_q|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_v|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_out\\.0|.*(?<!single_)transformer_blocks\\.[0-9]+\\.ff\\.net\\.2|.*single_transformer_blocks\\.[0-9]+\\.norm\\.linear|.*single_transformer_blocks\\.[0-9]+\\.proj_mlp|.*single_transformer_blocks\\.[0-9]+\\.proj_out|.*single_transformer_blocks\\.[0-9]+\\.attn.to_k|.*single_transformer_blocks\\.[0-9]+\\.attn.to_q|.*single_transformer_blocks\\.[0-9]+\\.attn.to_v|.*single_transformer_blocks\\.[0-9]+\\.attn.to_out)"
+
+  # Stage 1 uses Prodigy at lr=1; stage 2 switches to AdamW. See the note above.
+  optimizer:
+    type: "Prodigy"
+    params:
+      lr: 1
+      weight_decay: 0.01
+      use_bias_correction: true
+      safeguard_warmup: true
+
+  odm_loss:
+    modelpath: ./weights/epoch_100.pt
+    w_loss_f: 1
+    w_loss_1: 20
+    w_loss_2: 20
+    w_loss_3: 20
+    w_loss_4: 20
