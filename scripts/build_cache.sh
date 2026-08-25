@@ -12,7 +12,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-FLUX="${FLUX_DIR:-./FLUX.1-Fill-dev-nf4}"
+FLUX="${FLUX_DIR:-./FLUX.1-Fill-dev}"
 
 for split in train val; do
   echo "=== caching $split ==="

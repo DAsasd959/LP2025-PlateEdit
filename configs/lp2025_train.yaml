@@ -11,7 +11,8 @@
 # attested for the released checkpoint. See docs/REPRODUCIBILITY.md.
 
 dtype: bfloat16                                   # [artifact] bnb_4bit_compute_dtype
-flux_path: ./FLUX.1-Fill-dev-nf4                  # [artifact] NF4-quantised base
+flux_path: ./FLUX.1-Fill-dev                      # quantised to NF4 on load by
+                                                  # src/train/model.py [artifact]
 model_type: flux_fill
 
 train:
