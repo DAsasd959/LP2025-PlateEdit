@@ -36,7 +36,9 @@ train:
   max_steps: 19500
   save_interval: 4000
   sample_interval: 500
-  gradient_checkpointing: true                    # set false if VRAM allows; ~1.3x faster
+  # Trades memory for speed and is numerically identical either way. Required
+  # on a 24 GB card; on an MI300X (96 GiB) turning it off is ~1.3x faster.
+  gradient_checkpointing: false
   save_path: runs_lp2025_stage1
 
   condition_type: "word_fill"

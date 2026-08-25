@@ -20,16 +20,23 @@ cd "$(dirname "$0")/.."
 
 FLUX="${FLUX_DIR:-./FLUX.1-Fill-dev}"
 DATA="${STAGE1_DATA:-data/stage1}"
+# CACHE_ROOT can point at a different volume. On a pod whose home is a small
+# NFS share, the cache belongs on the large local disk instead; symlink
+# ./cache there, or set this.
+CACHE="${CACHE_ROOT:-cache}"
 
 if [ ! -d "$FLUX" ]; then
   echo "base model not found at $FLUX — set FLUX_DIR" >&2; exit 1
 fi
 
-NEED=190
-FREE=$(df -BG --output=avail . | tail -1 | tr -dc '0-9')
+# Check the volume the cache actually lands on, following symlinks — the
+# working directory is often on a different, much smaller filesystem.
+mkdir -p "$CACHE"
+NEED=$(( ( $(ls "$DATA/train/i_s" 2>/dev/null | wc -l) + $(ls "$DATA/val/i_s" 2>/dev/null | wc -l) ) * 10 / 1024 + 1 ))
+FREE=$(df -BG --output=avail "$(readlink -f "$CACHE")" | tail -1 | tr -dc '0-9')
+echo "cache target: $(readlink -f "$CACHE")  (${FREE} GB free, needs ~${NEED} GB)"
 if [ "$FREE" -lt "$NEED" ]; then
-  echo "only ${FREE} GB free here; the stage-1 cache needs about ${NEED} GB." >&2
-  echo "Point PP_OUTPUT_ROOT at a larger volume, or cache fewer samples." >&2
+  echo "not enough room. Point CACHE_ROOT at a larger volume." >&2
   exit 1
 fi
 
@@ -39,11 +46,11 @@ for split in train val; do
   echo "=== caching $split ($(ls "$src/i_s" | wc -l) samples) ==="
   PP_DATASET=plate \
   PP_DATA_ROOT="$src" \
-  PP_OUTPUT_ROOT="cache/stage1_$split" \
+  PP_OUTPUT_ROOT="$CACHE/stage1_$split" \
   PP_FLUX_PATH="$FLUX" \
   FLUX_QUANTIZE="${FLUX_QUANTIZE:-nf4}" \
   python -m src.train.preprocess_partial
 done
 
-echo "train: $(ls cache/stage1_train | wc -l) files"
-echo "val:   $(ls cache/stage1_val   | wc -l) files"
+echo "train: $(ls "$CACHE/stage1_train" | wc -l) files"
+echo "val:   $(ls "$CACHE/stage1_val"   | wc -l) files"
