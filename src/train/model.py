@@ -1,4 +1,3 @@
-import os
 from diffusers.pipelines import FluxFillPipeline
 import lightning as L
 from peft import LoraConfig
@@ -38,21 +37,12 @@ class OminiModelFIll(L.LightningModule):
         # 即使本地已經是 nf4，這裡依然要宣告，目的是設定 compute_dtype=bfloat16
         print(f"Loading Local FLUX Model from: {flux_pipe_id}")
         
-        # bitsandbytes' NF4 kernels are written for CUDA; its ROCm support is a
-        # separate, experimental backend. Set FLUX_QUANTIZE=none to load the
-        # transformer in bfloat16 instead — about 34 GB rather than 12 GB, which
-        # a 192 GB MI300X absorbs easily, and it takes bitsandbytes out of the
-        # picture entirely. Numerics then differ slightly from the released
-        # checkpoint, which was tuned against the quantised base.
-        quantize = os.environ.get("FLUX_QUANTIZE", "nf4").lower()
-        nf4_config = None if quantize in ("none", "off", "0", "bf16") else \
-            BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=dtype,
-                bnb_4bit_use_double_quant=True,
-            )
-        print(f"[flux] quantisation: {'none (bfloat16)' if nf4_config is None else 'nf4'}")
+        nf4_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=dtype,
+            bnb_4bit_use_double_quant=True,
+        )
 
         # --- [2. 載入模型] ---
         # A. 先載入 Transformer

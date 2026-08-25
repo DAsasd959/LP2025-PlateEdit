@@ -127,9 +127,7 @@ def main():
     os.makedirs(OUTPUT_ROOT, exist_ok=True)
     
     print("Loading FLUX models...")
-    # Same switch as src/train/model.py — see the note there.
-    _q = os.environ.get("FLUX_QUANTIZE", "nf4").lower()
-    nf4_config = None if _q in ("none", "off", "0", "bf16") else BitsAndBytesConfig(
+    nf4_config = BitsAndBytesConfig(
         load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
     )
     pipe = FluxFillPipeline.from_pretrained(
