@@ -255,12 +255,23 @@ floor on what the generator produced.
 
 ## Reproducibility
 
-The original training run's directory was deleted; its wandb record survived.
-[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) marks every configuration
-value as attested, inferred, or missing, so anyone reproducing this knows which
-numbers are documented and which are reconstructed. Two blocks — the ODM loss
-weights and the optimiser's secondary parameters — are taken from the same
-script's nearest surviving configuration rather than from that run.
+Training runs in two stages, and both are attested: each config in `configs/`
+is the file Lightning wrote when that run started. Stage 2's `ckpt/27606` is
+byte-identical to the released adapter, and its `reuse_lora_path` points at
+stage 1's `ckpt/21250`.
+
+| | Stage 1 | Stage 2 (released) |
+|---|---:|---:|
+| Data | 20,000 synthetic | 2,569 real |
+| Batch × accumulation | 8 × 8 | 1 × 64 |
+| Optimiser | Prodigy, lr 1 | AdamW, lr 1e-4 |
+| Checkpoint | 21,250 | 27,606 |
+| Epochs | 8.5 | 10.7 |
+
+Note that `src/train/callbacks.py` counts one step per batch, not per optimizer
+step. [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) has the full table,
+the three places the shipped configs deliberately deviate, and what is still
+unrecorded.
 
 ## Citation
 

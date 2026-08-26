@@ -38,7 +38,8 @@ train:
 
   dataset:
     type: word
-    image_size: 512                               # [lineage]
+    glyph_scale: 1
+    image_size: 512
     train_cache_root: ./cache/lp_train            # 2,569 samples  [logged]
     valid_cache_root: ./cache/lp_val              #   620 samples  [logged]
     val_check_interval: 1284
