@@ -1,43 +1,48 @@
-# Stage 1 — pretraining on synthetic Taiwanese plates.
+# Stage 1 -- pretraining on synthetic Taiwanese plates.
 #
-# The paper trains in two stages: synthetic pretraining, then fine-tuning on
-# real photographs (configs/lp2025_train.yaml). This file is the first stage.
+# These are the original run's own values, read out of the config Lightning
+# wrote at startup: runs_word_fill_plate_512/20260415-150207/config.yaml. That
+# run's ckpt/21250 is what the released stage-2 checkpoint resumes from
+# (see reuse_lora_path in configs/lp2025_train.yaml).
 #
-# WHY THE STEP COUNT IS WHAT IT IS
-#   Taiwanese plates are alphanumeric only — the corpus this data was drawn
-#   from (41,513 plates) uses exactly `-0123456789A-Z`, no CJK. That matters,
-#   because the matching CCPD stage-1 run needed 20,000 steps solely to give
-#   each of 31 Chinese province glyphs enough updates. For 36 alphanumeric
-#   classes the earlier CCPD probe reached 40/40 correct edits, with stroke
-#   weight indistinguishable from real plates, at ~74 updates per class.
+# WHAT A "STEP" MEANS HERE
+#   src/train/callbacks.py increments its counter once per batch, not per
+#   optimizer step. With batch_size 8, the original 21,250 steps are 170,000
+#   image-views -- about 8.7 epochs over 20,000 synthetic plates, not one.
+#   Effective batch is 8 x 8 = 64, matching stage 2.
 #
-#   19,500 steps is one full epoch (batch 1, no accumulation), giving roughly
-#   1,100 updates per class — about 15x the level already shown to be enough.
-#   It is the safe choice, not the minimum one. If the schedule is tight,
-#   8,000 steps (~440/class) or even 3,000 (~166/class) remain above the
-#   demonstrated threshold. Pass a shorter run as a config override rather
-#   than editing this file, so the default stays comparable to CCPD.
+# IF THE SCHEDULE IS TIGHT
+#   Taiwanese plates are alphanumeric only -- the corpus this data came from
+#   (41,513 plates) uses exactly `-0123456789A-Z`, no CJK. The matching CCPD
+#   stage-1 run needed its full length solely to feed 31 Chinese province
+#   glyphs; for 36 alphanumeric classes an earlier CCPD probe reached 40/40
+#   correct edits, stroke weight indistinguishable from real plates, at ~74
+#   updates per class. A third of this schedule stays far above that. Shorten
+#   it with a command-line override rather than by editing this file, so the
+#   default keeps matching the paper.
 #
-# WHY THERE IS NO reuse_lora_path HERE
-#   Stage 1 starts from the base FLUX weights. Stage 2 is what resumes, via
-#   its own reuse_lora_path. Do not warm-start this stage: it uses Prodigy,
-#   and Prodigy suppresses its learned rate when started from warm weights —
-#   the reason stage 2 switches to AdamW (paper Sec 4.1).
+# WHY THERE IS NO reuse_lora_path
+#   Stage 1 starts from the base FLUX weights; the original run set none.
+#   Stage 2 is what resumes. Do not warm-start this stage -- it uses Prodigy,
+#   which suppresses its learned rate from warm weights. That is exactly why
+#   stage 2 switches to AdamW.
 flux_path: ./FLUX.1-Fill-dev                      # set FLUX_QUANTIZE=none on ROCm
 dtype: "bfloat16"
 model_type: flux_fill
 
 train:
-  batch_size: 1
-  accumulate_grad_batches: 1
+  batch_size: 8
+  accumulate_grad_batches: 8                      # effective batch 64
   dataloader_workers: 8
-  # 1 step = 1 optimizer step = 1 image (batch, accumulation and devices all 1)
-  # 19,500 steps = one pass over the training split, nothing seen twice.
-  max_steps: 19500
-  save_interval: 4000
-  sample_interval: 500
+  # 21,250 batches x 8 = 170,000 image-views. The original run set max_steps: -1
+  # and kept going to 28,750; 21,250 is the save stage 2 actually resumed from.
+  max_steps: 21250
+  save_interval: 1250
+  sample_interval: 1000
   # Trades memory for speed and is numerically identical either way. Required
   # on a 24 GB card; on an MI300X (96 GiB) turning it off is ~1.3x faster.
+  # The original run had this on, on a 24 GB card. It is numerically identical
+  # either way, so leaving it off on a 96 GiB MI300X changes nothing but speed.
   gradient_checkpointing: false
   save_path: runs_lp2025_stage1
 
@@ -45,14 +50,17 @@ train:
   # limit_val_batches belongs at this level, not under dataset — train.py reads
   # training_config.get("limit_val_batches"). Nested, it is silently ignored and
   # every validation walks the whole split.
-  limit_val_batches: 100
+  limit_val_batches: 125
   dataset:
+    # The original run used 20,000 train and a separately generated 1,000-sample
+    # validation set. The released data splits one 20,000 generation 19,500/500,
+    # a 2.5% shortfall on train and a smaller validation set. Nothing else differs.
     train_cache_root: ./cache/stage1_train        # 19,500 synthetic samples
     valid_cache_root: ./cache/stage1_val          #    500 held out
     type: "word"
     glyph_scale: 1
     image_size: 512
-    val_check_interval: 2000
+    val_check_interval: 1250
 
   wandb:
     project: "LP2025-PlateEdit"
