@@ -25,7 +25,7 @@ Example:
         --data_root data/test \
         --config configs/lp2025_train.yaml \
         --lora weights/lp2025_27606/adapter_model.safetensors \
-        --flux_dir FLUX.1-Fill-dev-nf4 \
+        --flux_dir ./FLUX.1-Fill-dev \
         --out outputs/lp2025_test
 """
 import argparse
@@ -97,7 +97,10 @@ def main():
     ap.add_argument("--data_root", required=True)
     ap.add_argument("--config", default="configs/lp2025_train.yaml")
     ap.add_argument("--lora", required=True)
-    ap.add_argument("--flux_dir", default="FLUX.1-Fill-dev-nf4")
+    # Matches README, build_cache.sh and train.sh. The original run pointed at
+    # a pre-quantised FLUX.1-Fill-dev-nf4 directory; this repo ships the full
+    # model and quantises on load, so that name resolves to nothing here.
+    ap.add_argument("--flux_dir", default="./FLUX.1-Fill-dev")
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=0, help="0 = all samples")
     ap.add_argument("--seed", type=int, default=0)
