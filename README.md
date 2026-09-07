@@ -126,6 +126,15 @@ Generation, then both evaluations. Expect **ACC 0.8112 / NED 0.9552** on the ful
 test split of 3,258 images. Generation runs at about 17 s per image on an RTX
 4090, so the full split takes roughly 15 hours; set `LIMIT=50` to sample first.
 
+One template is drawn per sample from the seven the adapter was trained on, and
+which one a sample gets changes what it generates. By default `infer.py` derives
+that draw from the file stem, so a sample produces the same image whether it is
+generated alone or inside the full split. The published run instead advanced a
+single shared RNG in iteration order, which ties every sample's template to how
+many samples precede it — `reproduce.sh` passes `--prompt_mode sequence` to
+match it. If you generate a subset any other way, per-sample results will differ
+from a full run even at the same `--seed`.
+
 ## Train
 
 ```bash

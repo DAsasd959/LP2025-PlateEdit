@@ -48,6 +48,14 @@ from src.train.model import OminiModelFIll                   # noqa: E402
 
 # The seven templates the adapter saw during training. One is drawn per sample;
 # a single fixed template measurably narrows the output distribution.
+#
+# Which template a sample draws changes what it generates, so how the draw is
+# made matters. --prompt_mode stem derives it from the file stem, so a sample
+# gets the same template whether it is scored alone or inside the full split.
+# --prompt_mode sequence is the original behaviour: one shared RNG advanced in
+# iteration order, which makes every sample's template depend on how many
+# samples precede it. The published numbers were produced that way over the
+# full sorted split; scripts/reproduce.sh passes it for that reason.
 PROMPTS = [
     "Fill the masked character '{text}' using the same color, font, and style as the surrounding text.",
     "The missing character '{text}' should match the style and color of neighboring glyphs.",
@@ -104,6 +112,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=0, help="0 = all samples")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--prompt_mode", choices=("stem", "sequence"), default="stem",
+                    help="how the prompt template is drawn; see PROMPTS above")
     ap.add_argument("--compare", action="store_true",
                     help="also write a source|output|glyph|mask strip per sample")
     a = ap.parse_args()
@@ -132,7 +142,13 @@ def main():
 
     os.makedirs(a.out, exist_ok=True)
     pipe, config = load_model(a.config, a.lora, a.flux_dir)
-    rng = random.Random(a.seed)
+    seq_rng = random.Random(a.seed)
+
+    def pick_prompt(stem):
+        if a.prompt_mode == "sequence":
+            return seq_rng.choice(PROMPTS)
+        return random.Random(f"{a.seed}:{stem}").choice(PROMPTS)
+
     skipped = []
 
     for stem in tqdm(stems, desc="generating"):
@@ -160,7 +176,7 @@ def main():
                          condition=[np.array(glyph) / 255.0, mask_rgb, source],
                          position_delta=[0, 0])
         res = generate_fill(
-            pipe, prompt=rng.choice(PROMPTS).format(text=text), conditions=[cond],
+            pipe, prompt=pick_prompt(stem).format(text=text), conditions=[cond],
             height=SIZE, width=SIZE,
             generator=torch.Generator(device="cuda").manual_seed(a.seed),
             model_config=config.get("model", {}), default_lora=True)

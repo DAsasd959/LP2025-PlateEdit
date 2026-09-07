@@ -25,7 +25,8 @@ python scripts/infer.py \
     --lora weights/lp2025_27606/adapter_model.safetensors \
     --flux_dir "$FLUX" \
     --out "$OUT" \
-    --limit "$LIMIT"
+    --limit "$LIMIT" \
+    --prompt_mode sequence   # what the published numbers were produced with
 
 echo "=== text accuracy ==="
 python scripts/eval_ocr.py \
