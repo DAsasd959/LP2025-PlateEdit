@@ -1,0 +1,41 @@
+dtype: bfloat16
+flux_path: /work/u1258075/FluxText_plate/FLUX.1-Fill-dev-nf4
+model_type: flux_fill
+train:
+  accumulate_grad_batches: 8
+  batch_size: 8
+  condition_type: word_fill
+  dataloader_workers: 8
+  dataset:
+    image_size: 512
+    limit_val_batches: 125
+    train_cache_root: /work/u1258075/20260318_train20k_tokens_partial_mask
+    type: word
+    val_check_interval: 1250
+    valid_cache_root: /work/u1258075/20260318_valid1k_tokens_partial_mask
+  gradient_checkpointing: true
+  lora_config:
+    init_lora_weights: gaussian
+    lora_alpha: 32
+    r: 32
+    target_modules: (.*x_embedder|.*(?<!single_)transformer_blocks\.[0-9]+\.norm1\.linear|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_k|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_q|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_v|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_out\.0|.*(?<!single_)transformer_blocks\.[0-9]+\.ff\.net\.2|.*single_transformer_blocks\.[0-9]+\.norm\.linear|.*single_transformer_blocks\.[0-9]+\.proj_mlp|.*single_transformer_blocks\.[0-9]+\.proj_out|.*single_transformer_blocks\.[0-9]+\.attn.to_k|.*single_transformer_blocks\.[0-9]+\.attn.to_q|.*single_transformer_blocks\.[0-9]+\.attn.to_v|.*single_transformer_blocks\.[0-9]+\.attn.to_out)
+  max_steps: -1
+  odm_loss:
+    modelpath: epoch_100.pt
+    w_loss_1: 20
+    w_loss_2: 20
+    w_loss_3: 20
+    w_loss_4: 20
+    w_loss_f: 1
+  optimizer:
+    params:
+      lr: 1
+      safeguard_warmup: true
+      use_bias_correction: true
+      weight_decay: 0.01
+    type: Prodigy
+  sample_interval: 1000
+  save_interval: 1250
+  save_path: runs_word_fill_plate_512
+  wandb:
+    project: FLUXText_plate_baseline

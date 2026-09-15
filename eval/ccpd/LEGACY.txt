@@ -1,0 +1,23 @@
+Scripts in this repository that still carry absolute paths, and why.
+
+KEPT FOR COMPARISON ONLY -- the drives these point at no longer exist, so they
+cannot run as-is. They record how the published numbers were originally computed.
+
+  eval/ccpd/eval_lpips_ccpd.py     /media/avlab/Transcend, /media/avlab/76b02113-...
+  eval/ccpd/eval_fid.py            same
+  eval/lp/eval_plate.py            /media/avlab/disk2/LP2024/...
+                                   the paper's own LP inference script. Paths are
+                                   hardcoded AND no random seed is set, so it is
+                                   not reproducible. Use eval/lp/infer.py.
+
+Use instead:
+  eval/{lp,ccpd}/eval_image.py     FID / full LPIPS / region LPIPS, all via CLI
+  eval/{lp,ccpd}/eval_ocr.py       ACC / NED
+  eval/ccpd/region_lpips_ccpd.py   region LPIPS with per-cell mask reconstruction
+                                   (needs the cells.txt written at generation time)
+  eval/lp/infer.py                 LP inference with --seed and --prompt_mode
+
+ONE-OFF UTILITIES, not part of any documented pipeline:
+  synth/cn/check_text.py           corpus sanity check
+  synth/cn/make_rect_mask.py       rectangular-mask helper
+Both point at /media/avlab/Transcend. Edit the path at the top before use.

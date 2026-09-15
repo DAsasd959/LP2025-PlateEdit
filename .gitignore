@@ -4,17 +4,31 @@ __pycache__/
 .venv/
 wandb/
 runs_*/
-outputs/
-cache/
+/outputs/
+/cache/
+/data/
 *.pt
 *.pth
 *.safetensors
-!configs/*.yaml
+*.pdparams
 .DS_Store
 
-# Weights are release assets, not tracked files. Ignore the directory wholesale
-# rather than by extension: an extension list lets adapter_config.json slip
-# through and leaves the directory showing as untracked.
+# Configs are tracked; everything else that looks like a weight is not.
+!train/config/*/*.yaml
+
+# Weights and datasets are release assets, not tracked files.
 weights/*
 !weights/README.md
 !weights/checksums.txt
+
+# Fonts are tracked — see font/README.md for their provenance.
+
+# Synthetic-generation assets (9.1 GB of backgrounds, 654 MB of fonts).
+synth/*/datasets/
+
+# SynthText corpus leftovers the plate generators never read. Only
+# plate_list_final2.txt, ccpd_plate_list.txt and colors_new.cp are used.
+synth/*/Synthtext/data/*
+!synth/*/Synthtext/data/plate_list_final2.txt
+!synth/*/Synthtext/data/ccpd_plate_list.txt
+!synth/*/Synthtext/data/colors_new.cp

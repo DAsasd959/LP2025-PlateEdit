@@ -1,0 +1,72 @@
+# Stage-1 v2：CCPD 合成 20,000 張，20,000 步（新檔，未修改 plate_512_size.yaml）
+# =============================================================================
+# 與 v1（7/26 那次，3,000 步）的差別只有兩點：
+#
+#   1. cache 換成 ..._tokens_pp50 —— 用 PP_PROVINCE_PROB=0.5 重建。
+#      實測遮罩片段含中文的比例從 15.8% 提到 59.6%
+#      （邏輯是「0.5 機率強制遮省份，否則均勻抽 1/7」-> 0.5+0.5/7 = 57.1%）
+#   2. max_steps 3,000 -> 20,000
+#
+#   合起來，中文的更新次數從 474 次（每省約 15 次）
+#   變成 20,000 x 0.596 = 11,920 次（每省約 385 次）。
+#   英數字仍有 8,080 次（每類約 238 次）—— 遠高於已驗證足夠的 74 次/類
+#   （v1 用 74 次/類就做到英數字編輯 40/40 正確、筆寬與真實無法區分）。
+#
+# 為什麼從零開始而不從 ckpt/3000 續跑：
+#   Stage-1 用 Prodigy(lr=1)，而論文 Sec 4.1 自己記錄「Prodigy 在 warm start
+#   會壓低學習率」—— 那正是 Stage-2 改用 AdamW 的原因。從 warm 權重續跑
+#   Prodigy 會踩同一個坑，所以這裡不設 reuse_lora_path。
+flux_path: ./weights/flux_base
+dtype: "bfloat16"
+model_type: flux_fill
+
+train:
+  batch_size: 1
+  accumulate_grad_batches: 1
+  dataloader_workers: 8
+  # 1 步 = 1 次 optimizer step = 看 1 張圖（batch/accum/devices 皆為 1）
+  # 20,000 步 = 20,000 張 = 恰好 1 個 epoch，沒有任何影像被看兩次
+  max_steps: 20000
+  save_interval: 4000
+  sample_interval: 500
+  gradient_checkpointing: true
+  save_path: "runs_cn_v2_stage1"
+
+  condition_type: "word_fill"
+  # limit_val_batches 必須放在 train 這層：train.py:180 讀的是
+  # training_config.get("limit_val_batches")，放在 dataset 底下會被忽略，
+  # 導致每次驗證都跑完整 500 筆（10 次驗證 = 多花約 70 分鐘）
+  limit_val_batches: 100
+  dataset:
+    train_cache_root: ./cache/ccpd_stage1_train
+    valid_cache_root: ./cache/ccpd_stage1_val
+    type: "word"
+    glyph_scale: 1
+    image_size: 512
+    val_check_interval: 2000
+
+  wandb:
+    project: "FLUXText_plate_baseline"
+
+  lora_config:
+    r: 32
+    lora_alpha: 32
+    init_lora_weights: "gaussian"
+    target_modules: "(.*x_embedder|.*(?<!single_)transformer_blocks\\.[0-9]+\\.norm1\\.linear|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_k|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_q|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_v|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_out\\.0|.*(?<!single_)transformer_blocks\\.[0-9]+\\.ff\\.net\\.2|.*single_transformer_blocks\\.[0-9]+\\.norm\\.linear|.*single_transformer_blocks\\.[0-9]+\\.proj_mlp|.*single_transformer_blocks\\.[0-9]+\\.proj_out|.*single_transformer_blocks\\.[0-9]+\\.attn.to_k|.*single_transformer_blocks\\.[0-9]+\\.attn.to_q|.*single_transformer_blocks\\.[0-9]+\\.attn.to_v|.*single_transformer_blocks\\.[0-9]+\\.attn.to_out)"
+
+  # 與 v1 相同：Stage-1 用 Prodigy，lr=1
+  optimizer:
+    type: "Prodigy"
+    params:
+      lr: 1
+      weight_decay: 0.01
+      use_bias_correction: true
+      safeguard_warmup: true
+
+  odm_loss:
+    modelpath: ./weights/odm_epoch_100.pt
+    w_loss_f: 1
+    w_loss_1: 20
+    w_loss_2: 20
+    w_loss_3: 20
+    w_loss_4: 20

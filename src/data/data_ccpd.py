@@ -1,4 +1,3 @@
-import os
 import random
 import numpy as np
 from pathlib import Path
@@ -37,9 +36,7 @@ class PlateDataset(Dataset):
         print(f"[{split}] 載入 {len(self.image_files)} 張 CCPD 圖片 (Fixed Seed = {seed})")
         
         # 載入字體
-        # Out of scope for this LP2025 release (only reached when PP_DATASET=ccpd);
-        # kept configurable so the import does not carry a machine-specific path.
-        self.font_path = os.environ.get("PP_LATIN_FONT", "fonts/TWGen7_V1.ttf")
+        self.font_path = "/media/avlab/4TB/CCPD/Synthplate/datasets/fonts/LP2022_2/TWGen7_V1.ttf"
         self.base_font = ImageFont.truetype(self.font_path, size=60)
         
         # Transform

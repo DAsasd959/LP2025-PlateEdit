@@ -1,0 +1,40 @@
+dtype: bfloat16
+flux_path: /media/avlab/76b02113-59b9-4d03-9078-45cf20e14592/0_paper/FluxText_plate/FLUX.1-Fill-dev-nf4
+model_type: flux_fill
+train:
+  accumulate_grad_batches: 64
+  batch_size: 1
+  condition_type: word_fill
+  dataloader_workers: 8
+  dataset:
+    glyph_scale: 1
+    image_size: 512
+    limit_val_batches: 620
+    train_cache_root: /media/avlab/disk2/LP2024/train/20260328_LP2025
+    val_check_interval: 1284
+    valid_cache_root: /media/avlab/disk2/LP2024/val/20260328_LP2025
+  gradient_checkpointing: true
+  lora_config:
+    init_lora_weights: gaussian
+    lora_alpha: 32
+    r: 32
+    target_modules: (.*x_embedder|.*(?<!single_)transformer_blocks\.[0-9]+\.norm1\.linear|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_k|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_q|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_v|.*(?<!single_)transformer_blocks\.[0-9]+\.attn\.to_out\.0|.*(?<!single_)transformer_blocks\.[0-9]+\.ff\.net\.2|.*single_transformer_blocks\.[0-9]+\.norm\.linear|.*single_transformer_blocks\.[0-9]+\.proj_mlp|.*single_transformer_blocks\.[0-9]+\.proj_out|.*single_transformer_blocks\.[0-9]+\.attn.to_k|.*single_transformer_blocks\.[0-9]+\.attn.to_q|.*single_transformer_blocks\.[0-9]+\.attn.to_v|.*single_transformer_blocks\.[0-9]+\.attn.to_out)
+  max_steps: -1
+  odm_loss:
+    modelpath: epoch_100.pt
+    w_loss_1: 20
+    w_loss_2: 20
+    w_loss_3: 20
+    w_loss_4: 20
+    w_loss_f: 1
+  optimizer:
+    params:
+      lr: 0.0001
+      weight_decay: 0.01
+    type: AdamW
+  reuse_lora_path: /media/avlab/76b02113-59b9-4d03-9078-45cf20e14592/0_paper/FluxText_plate/runs_word_fill_plate_512/20260415-150207/ckpt/21250/adapter_model.safetensors
+  sample_interval: 642
+  save_interval: 642
+  save_path: runs_word_fill_plate_512
+  wandb:
+    project: FLUXText_plate_baseline

@@ -1,51 +1,36 @@
 # Checkpoints
 
-## Released adapter
+All adapters are rank-32 QLoRA over an NF4-quantised FLUX.1-Fill-dev. Download
+from Releases into `weights/`, keeping the directory names below, then
+`sha256sum -c weights/checksums.txt`.
 
-| | |
-|---|---|
-| Step | 27,606 (epoch ~10–11) |
-| Files | `adapter_model.safetensors` (222 MB), `adapter_config.json`, `README.md` |
-| Base | FLUX.1-Fill-dev, NF4-quantised |
-| LoRA | r=32, α=32, gaussian init, dropout 0, no DoRA, no rsLoRA |
+| Directory | Size | Dataset | Stage | Notes |
+|---|---:|---|---|---|
+| `lp_stage1_ckpt_21250/` | 222 MB | LP-2025 synthetic | 1 | 21,250 batches x 8 = 170,000 image-views |
+| `lp_stage2_ckpt_27606/` | 222 MB | LP-2025 real | 2 | **the published LP checkpoint** |
+| `ccpd_stage1_ckpt_20000/` | 222 MB | CCPD synthetic | 1 | built with `--province_ratio 0.5` |
+| `ccpd_stage2_ckpt_10000/` | 222 MB | CCPD balanced real | 2 | **the published CCPD checkpoint** |
+| `odm_epoch_100.pt` | 677 MB | — | — | ODM perceptual loss, used by every run |
+| `trba_lp2025/` | 191 MB | — | — | TRBA recogniser for LP evaluation |
+| `trba_ccpd_final/` | 191 MB | — | — | TRBA recogniser for CCPD evaluation, 98.199% on real plates |
 
-Place it at `weights/lp2025_27606/` or pass any path via `--lora`.
+`flux_base/` is not a release asset. Download FLUX.1-Fill-dev (32 GB) from
+https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev and place it at
+`weights/flux_base`. A pre-quantised NF4 copy is not needed: `src/train/model.py`
+applies `BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+bnb_4bit_compute_dtype=bfloat16)` on load, which produces the same NF4 weights.
 
-The adapter is stored in PEFT layout: keys carry a `transformer.` prefix and
-lack the `.default` sub-module that a live PEFT model expects.
-`scripts/infer.py` renames them on load and prints how many tensors matched — if
-that count is far below the total, the config and the checkpoint disagree.
+## Checkpoint naming
 
-## Why step 27,606
+`src/train/callbacks.py` increments its counter once per **batch**, not per
+optimizer update. A checkpoint named `ckpt/21250` is therefore 21,250 batches. At
+the paper's batch size of 8 that is 170,000 image-views, or about 8.5 epochs over
+the 20,000 synthetic plates. Training the same schedule at batch 1 x accum 64
+produces the identical model at `ckpt/170000`.
 
-Validation loss over the run, sampled every 1,284 steps:
+## Stage 2 warm start
 
-| Step | val/loss_sd |
-|---:|---:|
-| 2,568 | 0.3461 |
-| 14,129 | 0.3358 |
-| 26,974 | **0.3232 — lowest of the run** |
-| 28,258 | 0.3432 |
-| 29,543 | 0.3232 |
-| 43,672 | 0.3432 |
-
-The released step sits next to the run's best validation loss, and the following
-16,000 steps never beat it. Validation loss is essentially flat from the first
-epoch onward — it moves between 0.323 and 0.347 for the whole run — so the
-checkpoint choice is not sharply determined by loss alone, and training past
-roughly 28k steps buys nothing measurable.
-
-## Recogniser checkpoint
-
-The TRBA evaluator used for ACC/NED:
-
-| | |
-|---|---|
-| Architecture | TPS-ResNet-BiLSTM-Attn |
-| Charset | `A–Z 0–9 ·` (num_class 38) |
-| Input | 128×128, PAD=True |
-| Training | 300,000 iterations, batch 32, Adadelta lr=1 |
-| Data | LP2025 train 13,243 / val 3,340 |
-
-Read `docs/DATA.md` on the cross-split plate-string overlap before quoting its
-validation accuracy as a held-out figure.
+Stage 2 resumes from a stage-1 adapter through `reuse_lora_path`. Point it either
+at your own stage-1 output or at the released stage-1 adapter. Do not warm-start
+stage 1 itself: it uses Prodigy, whose D-adaptation suppresses the learned rate
+when starting from converged weights. That is why stage 2 switches to AdamW.

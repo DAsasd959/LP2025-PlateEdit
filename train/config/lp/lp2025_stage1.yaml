@@ -1,0 +1,91 @@
+# Stage 1 -- pretraining on synthetic Taiwanese plates.
+#
+# These are the original run's own values, read out of the config Lightning
+# wrote at startup: runs_word_fill_plate_512/20260415-150207/config.yaml. That
+# run's ckpt/21250 is what the released stage-2 checkpoint resumes from
+# (see reuse_lora_path in configs/lp2025_train.yaml).
+#
+# WHAT A "STEP" MEANS HERE
+#   src/train/callbacks.py increments its counter once per batch, not per
+#   optimizer step. With batch_size 8, the original 21,250 steps are 170,000
+#   image-views -- about 8.7 epochs over 20,000 synthetic plates, not one.
+#   Effective batch is 8 x 8 = 64, matching stage 2.
+#
+# IF THE SCHEDULE IS TIGHT
+#   Taiwanese plates are alphanumeric only -- the corpus this data came from
+#   (41,513 plates) uses exactly `-0123456789A-Z`, no CJK. The matching CCPD
+#   stage-1 run needed its full length solely to feed 31 Chinese province
+#   glyphs; for 36 alphanumeric classes an earlier CCPD probe reached 40/40
+#   correct edits, stroke weight indistinguishable from real plates, at ~74
+#   updates per class. A third of this schedule stays far above that. Shorten
+#   it with a command-line override rather than by editing this file, so the
+#   default keeps matching the paper.
+#
+# WHY THERE IS NO reuse_lora_path
+#   Stage 1 starts from the base FLUX weights; the original run set none.
+#   Stage 2 is what resumes. Do not warm-start this stage -- it uses Prodigy,
+#   which suppresses its learned rate from warm weights. That is exactly why
+#   stage 2 switches to AdamW.
+flux_path: ./weights/flux_base                      # set FLUX_QUANTIZE=none on ROCm
+dtype: "bfloat16"
+model_type: flux_fill
+
+train:
+  batch_size: 8
+  accumulate_grad_batches: 8                      # effective batch 64
+  dataloader_workers: 8
+  # 21,250 batches x 8 = 170,000 image-views. The original run set max_steps: -1
+  # and kept going to 28,750; 21,250 is the save stage 2 actually resumed from.
+  max_steps: 2656                                 # 21,250 batch ÷ accum 8。Lightning 的 max_steps 算優化器步，
+                                                  # callbacks.total_steps 才是 batch（檢查點 ckpt/21250 用後者命名）。
+                                                  # 論文那次是 max_steps -1 手動停在 batch 21,250。
+  save_interval: 1250
+  sample_interval: 1000
+  # Trades memory for speed and is numerically identical either way. Required
+  # on a 24 GB card; on an MI300X (96 GiB) turning it off is ~1.3x faster.
+  # The original run had this on, on a 24 GB card. It is numerically identical
+  # either way, so leaving it off on a 96 GiB MI300X changes nothing but speed.
+  gradient_checkpointing: true      # 與論文那次一致（20260415-150207/config.yaml）；設 false 在 24 GB 上會 OOM
+  save_path: runs_lp2025_stage1
+
+  condition_type: "word_fill"
+  # limit_val_batches belongs at this level, not under dataset — train.py reads
+  # training_config.get("limit_val_batches"). Nested, it is silently ignored and
+  # every validation walks the whole split.
+  limit_val_batches: 125
+  dataset:
+    # The original run used 20,000 train and a separately generated 1,000-sample
+    # validation set. The released data splits one 20,000 generation 19,500/500,
+    # a 2.5% shortfall on train and a smaller validation set. Nothing else differs.
+    train_cache_root: ./cache/stage1_train        # 20,000 synthetic samples (paper §4.2)
+    valid_cache_root: ./cache/stage1_val          #  1,000 held out (125 batches x bs 8)
+    type: "word"
+    glyph_scale: 1
+    image_size: 512
+    val_check_interval: 1250
+
+  wandb:
+    project: "LP2025-PlateEdit"
+
+  lora_config:
+    r: 32
+    lora_alpha: 32
+    init_lora_weights: "gaussian"
+    target_modules: "(.*x_embedder|.*(?<!single_)transformer_blocks\\.[0-9]+\\.norm1\\.linear|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_k|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_q|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_v|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_out\\.0|.*(?<!single_)transformer_blocks\\.[0-9]+\\.ff\\.net\\.2|.*single_transformer_blocks\\.[0-9]+\\.norm\\.linear|.*single_transformer_blocks\\.[0-9]+\\.proj_mlp|.*single_transformer_blocks\\.[0-9]+\\.proj_out|.*single_transformer_blocks\\.[0-9]+\\.attn.to_k|.*single_transformer_blocks\\.[0-9]+\\.attn.to_q|.*single_transformer_blocks\\.[0-9]+\\.attn.to_v|.*single_transformer_blocks\\.[0-9]+\\.attn.to_out)"
+
+  # Stage 1 uses Prodigy at lr=1; stage 2 switches to AdamW. See the note above.
+  optimizer:
+    type: "Prodigy"
+    params:
+      lr: 1
+      weight_decay: 0.01
+      use_bias_correction: true
+      safeguard_warmup: true
+
+  odm_loss:
+    modelpath: ./weights/odm_epoch_100.pt
+    w_loss_f: 1
+    w_loss_1: 20
+    w_loss_2: 20
+    w_loss_3: 20
+    w_loss_4: 20
