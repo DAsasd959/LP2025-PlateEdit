@@ -1,23 +1,37 @@
-Scripts in this repository that still carry absolute paths, and why.
+Scripts kept as the record of how the published numbers were produced.
 
-KEPT FOR COMPARISON ONLY -- the drives these point at no longer exist, so they
-cannot run as-is. They record how the published numbers were originally computed.
+They cannot run: their paths point at external drives that are no longer attached,
+and eval_plate.py additionally sets no random seed. They are here because the
+current scripts are reimplementations, and when a published number is questioned
+the answer should be a file, not a commit hash.
 
-  eval/ccpd/eval_lpips_ccpd.py     /media/avlab/Transcend, /media/avlab/76b02113-...
-  eval/ccpd/eval_fid.py            same
-  eval/lp/eval_plate.py            /media/avlab/disk2/LP2024/...
-                                   the paper's own LP inference script. Paths are
-                                   hardcoded AND no random seed is set, so it is
-                                   not reproducible. Use eval/lp/infer.py.
+  eval/lp/eval_plate.py          LP generation, the paper's own script
+  eval/ccpd/eval_ccpd.py         CCPD generation, superseded by cellset_edit.py
+                                 (which also writes the cells.txt that Region
+                                 LPIPS needs; none of the published CCPD outputs
+                                 came from eval_ccpd.py)
+  eval/ccpd/eval_fid.py          FID, the definition the published numbers use
+  eval/ccpd/eval_lpips_ccpd.py   Full and Region LPIPS, likewise
+
+The last two are not merely superseded -- they are what the metric definitions
+were recovered from. eval_fid.py leaves the ground truth at its original
+resolution and uses batch_size=1 (required: pytorch_fid cannot batch images of
+differing sizes). eval_lpips_ccpd.py resizes through torchvision's T.Resize,
+whose default is bilinear. eval/eval_image.py now matches both; before it did
+not, and reported FID 4.2167 where the published figure is 4.78.
 
 Use instead:
-  eval/{lp,ccpd}/eval_image.py     FID / full LPIPS / region LPIPS, all via CLI
-  eval/{lp,ccpd}/eval_ocr.py       ACC / NED
-  eval/ccpd/region_lpips_ccpd.py   region LPIPS with per-cell mask reconstruction
-                                   (needs the cells.txt written at generation time)
-  eval/lp/infer.py                 LP inference with --seed and --prompt_mode
+  eval/eval_image.py             FID / Full LPIPS / Region LPIPS, all via CLI
+  eval/eval_ocr.py               ACC / NED
+  eval/ccpd/region_lpips_ccpd.py Region LPIPS with per-cell mask reconstruction
+                                 from the cells.txt written at generation time
+  eval/lp/infer.py               LP inference with --seed and --prompt_mode
+  eval/ccpd/cellset_edit.py      CCPD generation, any cell set
+  eval/ccpd/mixed_span_edit.py   CCPD, province and alphanumeric in one span
+
+See docs/EVALUATION.md for the definitions and the numbers each produces.
 
 ONE-OFF UTILITIES, not part of any documented pipeline:
-  synth/cn/check_text.py           corpus sanity check
-  synth/cn/make_rect_mask.py       rectangular-mask helper
+  synth/cn/check_text.py         corpus sanity check
+  synth/cn/make_rect_mask.py     rectangular-mask helper
 Both point at /media/avlab/Transcend. Edit the path at the top before use.

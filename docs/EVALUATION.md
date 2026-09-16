@@ -20,20 +20,45 @@ python eval/ccpd/region_lpips_ccpd.py --gen_dir outputs/ccpd_recon \
 `eval/ccpd/LEGACY.txt` lists scripts kept only to document how the published
 numbers were originally computed; their paths point at drives that no longer exist.
 
-## Three things that change the numbers
+## The definitions the published numbers use
 
-**Region LPIPS definition.** The published numbers multiply both images by the
-mask and score the whole 512x512 frame. Cropping to the mask's bounding box
-instead gives 0.22 rather than 0.062 on LP, and differs by 9-10x on CCPD. Same
-images, same model.
+All three were recovered by measurement, reproducing the published values on the
+same 3,258 images. `eval/eval_image.py` implements them; `--fid_resize_gt` restores
+the wrong behaviour if you want to see the difference.
+
+**FID does not touch the ground truth. LPIPS resizes it, bilinear.** The thesis is
+explicit and the asymmetry is deliberate: FID compares distributions, so it uses
+"the generated 512x512 images and the ground-truth images in their original
+resolutions without extra preprocessing"; LPIPS compares pixel for pixel, so it
+"involves explicitly resizing the ground-truth images to 512x512". Measured on the
+released outputs:
+
+| | published | as defined | resize GT for FID | BICUBIC for LPIPS |
+|---|---:|---:|---:|---:|
+| FID | 4.78 | **4.7751** | 4.2167 | — |
+| Full LPIPS | 0.081 | **0.0807** | — | 0.0792 |
+| Region LPIPS | 0.062 | **0.0617** | — | 0.0650 |
+
+Resizing the ground truth for FID costs 0.56 because the interpolation blurs both
+sides toward each other. Using BICUBIC where the original used bilinear moves LPIPS
+in both directions at once, which is why it is easy to miss.
+
+Two mechanical consequences worth knowing. `pytorch_fid` cannot batch
+native-resolution plates -- they differ in size, so `batch_size` must be 1; the
+original script's `batch_size=1` was a requirement, not a preference. And batching
+itself changes nothing: 4.2167 at batch 50 against 4.2166 at batch 1.
+
+**Region LPIPS masks the images; it does not crop them.** Both images are
+multiplied by the mask and LPIPS is taken over the whole 512x512 frame, so
+everything outside the mask is identical black in both inputs. Cropping to the
+mask's bounding box instead gives 0.22 on the same LP outputs, and differs by
+9-10x on CCPD, because the crop removes the large identical region that otherwise
+dominates. Two papers reporting "region LPIPS" can differ by 3x on identical
+images. The mask keeps whatever soft edge its own resize produces -- forcing it to
+NEAREST gives 0.0587, not the published 0.062.
 
 **FID is not comparable across sample counts.** The same CCPD model scores 7.30 at
 n=200 and 3.85 at n=1,000. Only compare runs of equal size.
-
-**512² versus native resolution.** LP plates have a median size of 326x216 and
-75.8% are smaller than 512 on both sides. Resizing to 512² magnifies them and
-squares the aspect ratio: native-resolution FID runs about 28% higher and LPIPS
-2-4% lower. The ranking between methods does not change.
 
 ## Recogniser ceiling
 
@@ -48,13 +73,21 @@ there is negligible.
 
 | Setting | FID ↓ | Full LPIPS ↓ | Region LPIPS ↓ | ACC ↑ | NED ↑ |
 |---|---:|---:|---:|---:|---:|
-| Ours (both stages) | 5.3931 | 0.0768 | 0.0625 | 0.8076 | 0.9548 |
-| Real data only | 6.5637 | 0.0853 | 0.0683 | 0.6378 | 0.9163 |
-| Synthetic only | 8.7490 | 0.1196 | 0.1052 | 0.8082 | 0.9344 |
-| No ODM loss | — | — | — | 0.6676 | 0.9160 |
+| Ours (both stages) | 4.7751 | 0.0807 | 0.0617 | **0.8076** | **0.9548** |
+| Real data only | 5.9240 | 0.0871 | 0.0663 | 0.6378 | 0.9163 |
+| Synthetic only | 8.2500 | 0.1228 | 0.0997 | 0.8082 | 0.9344 |
+| No ODM loss | 3.4757 | 0.0785 | 0.0630 | 0.6676 | 0.9160 |
 
-At 512² the full method measures FID 4.2167 / 0.0792 / 0.0650 against the
-published 4.78 / 0.081 / 0.062.
+Against the published 4.78 / 0.081 / 0.062 / 0.952 — every image metric reproduces.
+ACC and NED are averaged per image rather than over a distribution, so they drift
+slightly with each generation run; FID matching to two decimals is what shows the
+regenerated outputs are equivalent to the published ones.
+
+**The no-ODM row beats the full method on FID and Full LPIPS while losing 14 points
+of ACC.** Perceptual and distributional metrics cannot see whether the characters
+are the *right* characters, so on their own they would select the worse model. The
+mechanism has not been checked against the images themselves — look at
+`LP2024_no_odm` before drawing a conclusion from this row.
 
 ### CCPD2019 stage ablation, province reconstruction, n = 1,000
 

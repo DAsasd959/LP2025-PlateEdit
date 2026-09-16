@@ -58,6 +58,9 @@ def main():
     ap.add_argument("--edit", action="store_true",
                     help="targets differ from the source text")
     ap.add_argument("--no_fid", action="store_true")
+    ap.add_argument("--fid_resize_gt", action="store_true",
+                    help="resize the ground truth to 512 before FID. Not what the "
+                         "published numbers did; it lowers FID noticeably.")
     ap.add_argument("--device", default="cuda")
     a = ap.parse_args()
 
@@ -88,12 +91,22 @@ def main():
             if not os.path.exists(rp):
                 missing += 1
                 continue
-            real = Image.open(rp).convert("RGB").resize((SIZE, SIZE), Image.BICUBIC)
+            real_native = Image.open(rp).convert("RGB")
+            # LPIPS compares pixel for pixel, so the ground truth is resized to the
+            # generated size -- bilinear, which is what torchvision's T.Resize used
+            # for the published numbers. BICUBIC here gives Full 0.0792 / Region
+            # 0.0650 where the published values are 0.081 / 0.062.
+            #
+            # FID does not resize the ground truth at all: the published numbers
+            # deliberately leave it at its original resolution, and resizing lowers
+            # LP's FID from 4.78 to 4.22 on identical images.
+            real = real_native.resize((SIZE, SIZE), Image.BILINEAR)
             gen = Image.open(gp).convert("RGB")
             if gen.size != (SIZE, SIZE):
-                gen = gen.resize((SIZE, SIZE), Image.BICUBIC)
+                gen = gen.resize((SIZE, SIZE), Image.BILINEAR)
             if not a.no_fid:
-                real.save(os.path.join(real_aligned, stem + ".png"))
+                (real if a.fid_resize_gt else real_native).save(
+                    os.path.join(real_aligned, stem + ".png"))
                 gen.save(os.path.join(gen_aligned, stem + ".png"))
             ta, tb = to_tensor(real).to(dev), to_tensor(gen).to(dev)
             full.append(float(net(ta, tb)))
@@ -119,7 +132,10 @@ def main():
         del net
         torch.cuda.empty_cache()
         from pytorch_fid import fid_score
-        v = fid_score.calculate_fid_given_paths([real_aligned, gen_aligned], 50, dev, 2048)
+        # batch_size must be 1 unless the ground truth was resized: pytorch_fid
+        # stacks a batch into one tensor, and native-resolution plates differ in size.
+        bs = 50 if a.fid_resize_gt else 1
+        v = fid_score.calculate_fid_given_paths([real_aligned, gen_aligned], bs, dev, 2048)
         print(f"FID          = {v:.4f}   (N={n}; do not compare across N)")
 
 

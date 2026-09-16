@@ -145,10 +145,14 @@ batch 8 that is 170,000 image-views, and the same point at batch 1 is `ckpt/1700
 See [docs/EVALUATION.md](docs/EVALUATION.md) for commands, full result tables, and
 three definitional traps that change the numbers by up to 10× on identical images.
 
-Headline: LP reaches FID 5.39 / ACC 0.808 against 6.56 / 0.638 for real data alone.
+Headline: LP reaches FID 4.78 / ACC 0.808 against 5.92 / 0.638 for real data alone.
 CCPD province reconstruction reaches ACC 0.9920 against a real-photograph ceiling
 of 0.9960. Province balancing lifts cross-province replacement from 0.4400 to
 0.8000 using under a quarter of the data.
+
+The metric definitions matter more than usual here: FID leaves the ground truth at
+its original resolution while LPIPS resizes it bilinear, and getting either wrong
+moves the numbers by more than the gaps between methods.
 
 ## Scope
 
