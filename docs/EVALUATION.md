@@ -116,6 +116,28 @@ with those.
 | Reconstruction | 9.2547 | 0.0725 | 0.0345 | 0.8982 | 0.9607 |
 | Replacement | 11.9581 | 0.1065 | 0.0609 | 0.6946 | 0.8772 |
 
+Replacement targets every masked cell, and its province targets are scheduled
+rather than sampled, so all 31 appear 32 or 33 times each. Sampling them at random
+leaves the rare ones almost untouched — `--prov_plan` exists for that reason.
+
+**Region LPIPS by part of the mask.** Masks here cover the province cell and one
+or two alphanumerics together, and a single figure averages the two. Splitting the
+same mask — cell 0 alone, then the alphanumeric cells alone — scores each part of
+the same generated image separately (`eval/ccpd/region_split_ccpd.py`; only Region
+LPIPS decomposes this way, FID and full-image LPIPS cannot):
+
+| | whole mask | Chinese cell | alphanumeric cells |
+|---|---:|---:|---:|
+| Reconstruction | 0.0345 | **0.0151** | **0.0200** |
+| Replacement | 0.0609 | **0.0214** | **0.0406** |
+
+The Chinese character is the easier half in both, and replacement costs it far
+less: 0.0151 → 0.0214 for Chinese against 0.0200 → 0.0406 for alphanumerics. The
+province has 31 candidates whose shapes differ sharply; the alphanumeric pool has
+34 and contains 8/B, 0/O, 5/S. The two halves also sum to the whole — 0.0151 +
+0.0200 = 0.0351 against 0.0345 measured — because the sub-masks do not overlap and
+everything outside them is zero in both images.
+
 Ground truth for these two is cut from the CCPD2019 scene images by the bounding
 box of the filename's quadrilateral — the same rule `test_1000/plates` follows,
 verified 6/6 against it. The 2,000 plates are spread across `ccpd_base`,
@@ -131,3 +153,8 @@ Cross-province replacement on 200 samples scores 0.4400 when stage 2 trains on t
 raw 8,000 CCPD images and **0.8000** on the balanced 1,777 — under a quarter of the
 data, nearly double the accuracy. The raw split is 95.86% one province (皖); six
 provinces never appear and sixteen appear fewer than ten times.
+
+That comparison draws its target provinces at random, so they are not evenly
+covered and the figures lean toward whichever provinces came up often. The
+replacement row above is the better basis for anything about province coverage:
+same question, 1,000 samples, all 31 provinces equally represented.
