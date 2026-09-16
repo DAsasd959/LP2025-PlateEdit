@@ -1,0 +1,8 @@
+Extract SynthText's bg_img here, so that this directory becomes:
+
+    bg_data/bg_img/ant+hill_1.jpg
+    bg_data/bg_img/ant+hill_10.jpg
+    ...
+
+See ../../README.md. The generator reads ../imnames.cp, which lists the 8,010
+filenames it will draw from, so a download that covers those names is enough.

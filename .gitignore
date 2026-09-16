@@ -23,8 +23,11 @@ weights/*
 
 # Fonts are tracked — see font/README.md for their provenance.
 
-# Synthetic-generation assets (9.1 GB of backgrounds, 654 MB of fonts).
-synth/*/datasets/
+# Synthetic-generation assets. The fonts and the background index are small and
+# tracked; the background images themselves are ~9 GB of SynthText material and
+# are downloaded, not redistributed. See synth/README.md.
+synth/*/datasets/bg_data/*
+!synth/*/datasets/bg_data/PUT_bg_img_HERE.txt
 
 # SynthText corpus leftovers the plate generators never read. Only
 # plate_list_final2.txt, ccpd_plate_list.txt and colors_new.cp are used.
