@@ -116,12 +116,12 @@ checkpoint, which is why stage 2 switches optimiser.
 
 ```bash
 # 1. cache  (each sample is ~9.45 MB, mostly the T5 embedding -- check free space)
-STAGE1_DATA=<generated dir> bash train/script/build_cache_stage1.sh          # LP stage 1
+STAGE1_DATA=<generated dir> bash train/script/build_cache_stage1.sh lp
 PP_PROVINCE_PROB=0.5 STAGE1_DATA=<generated dir> \
-    bash train/script/build_cache_stage1.sh                                  # CCPD stage 1
-bash train/script/build_cache.sh                                             # LP stage 2
+    bash train/script/build_cache_stage1.sh ccpd
+bash train/script/build_cache.sh                                   # LP stage 2
 python train/script/cn_preprocess.py --src data/ccpd/crops \
-    --out cache/ccpd_stage2_train --province_ratio 0.5 --max_k 2             # CCPD stage 2
+    --out cache/ccpd_stage2_train --province_ratio 0.5 --max_k 2   # CCPD stage 2
 
 # 2. train
 bash train/script/train_lp_stage1.sh           # 24 GB; _h100.sh is the published batch-8 recipe

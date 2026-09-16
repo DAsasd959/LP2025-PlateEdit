@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Measure real seconds-per-step on this machine before committing to a long run.
 #
-#   bash scripts/bench.sh [steps] [config]
+#   bash train/script/bench.sh [steps] [config]
 #
 # Runs a short training job with checkpointing, sampling and validation pushed
 # out of range, then reports the throughput the progress bar settled on. Model
@@ -10,7 +10,7 @@
 # Reference, measured: RTX 3090, NF4, gradient checkpointing on -> 4.46 s/step
 # (runs_cn_v2_stage1: 20,000 steps in 24 h 46 m).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 STEPS="${1:-200}"
 BASE="${2:-configs/lp2025_stage1.yaml}"
