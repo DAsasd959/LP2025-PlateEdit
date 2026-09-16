@@ -1,4 +1,32 @@
-# Data layout
+# Data
+
+## Two ways to get each dataset
+
+**The full dataset**, from its authors — everything they published, most of which
+this project never touches:
+
+| | Source |
+|---|---|
+| LP-2025 | https://github.com/AvLab-CV/LP2025 |
+| CCPD2019 | https://github.com/detectRecog/CCPD |
+
+**The subset this project used**, as release assets — the exact crops, masks,
+glyphs and labels behind the published numbers:
+
+| | Train | Val | Test |
+|---|---:|---:|---:|
+| LP-2025 | 2,569 | 620 | 3,258 |
+| CCPD2019 | 1,777 (province-balanced) | 90 | 1,000 |
+
+Prefer the subsets when reproducing published numbers. Both condition builders
+draw the masked span at random and neither original seed was recorded, so
+rebuilding from the full dataset produces correct geometry over a different set of
+edits — comparable numbers, not the same ones.
+
+Synthetic stage-1 data is not published either way: LP used 20,000 train / 1,000
+val, CCPD 20,000 / 500, and both are regenerated with `synth/`.
+
+## Layout
 
 Everything below is relative to the repository root. `data/` and `cache/` are
 git-ignored; create them yourself.
