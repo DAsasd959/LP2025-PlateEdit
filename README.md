@@ -190,18 +190,9 @@ Datasets: [CCPD2019](https://github.com/detectRecog/CCPD), [LP-2025](https://git
 
 ## License
 
-Work original to this repository is MIT ([LICENSE](LICENSE)). Three things it does
-not cover, because it cannot:
+Original work in this repository is MIT — see [LICENSE](LICENSE), which also lists
+the terms of the third-party code, weights, fonts and datasets redistributed or
+linked here.
 
-* **`synth/` is GPL** — the generator engine derives from SRNet-Datagen (Netease
-  Youdao). GPL is copyleft and cannot be relicensed as MIT, so that directory keeps
-  its own terms ([synth/LICENSE](synth/LICENSE)).
-* **`src/` has no upstream licence.** FLUX-Text publishes no LICENSE file, and code
-  without a stated licence grants no rights by default. Research use only until its
-  authors say otherwise.
-* **Released weights are non-commercial.** Every adapter is a LoRA over
-  FLUX.1-Fill-dev and inherits the FLUX.1 [dev] Non-Commercial License, which also
-  governs images generated with them.
-
-Fonts, datasets and SynthText backgrounds keep their own terms — see
-[LICENSE](LICENSE) for the full list.
+Released model weights are LoRA adapters over FLUX.1-Fill-dev and inherit its
+**non-commercial** terms, which also cover images generated with them.
