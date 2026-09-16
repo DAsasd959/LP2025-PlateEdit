@@ -24,7 +24,7 @@ directories mean the same thing in both.
 | Training | `train/script/train_lp_stage{1,2}.sh` | `train/script/train_ccpd_stage{1,2}.sh` |
 | Configs | `train/config/lp/` | `train/config/ccpd/` |
 | Cache | `train/script/build_cache_stage1.sh` · `build_cache.sh` | `build_cache_stage1.sh` · `cn_preprocess.py` |
-| Prepare your own plates | `eval/lp/prepare_sample.py` · `train/script/annotate_lp.py` | `train/script/crop_plates_from_base.py` · `eval/ccpd/build_ccpd_conditions.py` |
+| Prepare your own plates | `app.py` (browser) · `eval/lp/prepare_sample.py` · `train/script/annotate_lp.py` | `app.py --mode ccpd` · `train/script/crop_plates_from_base.py` · `eval/ccpd/build_ccpd_conditions.py` |
 | Synthetic data | `synth/tw/` | `synth/cn/` |
 | Scoring | `eval/eval_image.py` · `eval/eval_ocr.py` | + `eval/ccpd/eval_ccpd.py` |
 
@@ -155,8 +155,22 @@ the annotated corners rather than reading the published one; use `infer.py` when
 the published numbers are the point. `ccpd_cn_edit.py` (province only) and
 `ccpd_latin_edit.py` (alphanumeric only) remain available for ablations.
 
-**Your own plate.** Supply the crop, the text it shows and the four corners of the
-text region:
+**Your own plate, in a browser.**
+
+```bash
+python app.py --lora weights/lp_stage2_ckpt_27606/adapter_model.safetensors
+```
+
+Upload a photograph, click the four corners of the plate's text, type what it says
+and what you want it to say. The corners are what locate the text, so any plate
+works — nothing here is tied to LP-2025 or CCPD. `--mode ccpd` switches to the
+seven-cell Chinese layout and picks cells instead of a character range.
+
+The model loads on the first edit, not at startup. Everything before that is CPU,
+so *preview mask + glyph* costs nothing and is worth checking first.
+
+**Your own plate, from the command line.** Supply the crop, the text it shows and
+the four corners of the text region:
 
 ```bash
 python eval/lp/prepare_sample.py --image my_plate.jpg --text RBE8700 \
