@@ -85,15 +85,23 @@ are the *right* characters, so on their own they would select the worse model. T
 mechanism has not been checked against the images themselves — look at
 `LP2024_no_odm` before drawing a conclusion from this row.
 
-These edit the **Chinese province character**. The published CCPD table does not:
-it masks only the trailing five alphanumerics, and the scripts behind it cannot
-express a province mask at all — their cell grid starts at x=140 while the province
-occupies x=12..69. So there is no published counterpart here, and the two should
-not be read against each other: masking one Chinese character is an easier problem
-than masking one to five alphanumerics. The definitions are the same as the LP
-tables above, so these numbers are consistent with those.
+Both tables below mask the **Chinese province character**, which the published
+CCPD table never does: it masks only the trailing five alphanumerics, and the
+scripts behind it cannot express a province mask at all — their cell grid starts at
+x=140 while the province occupies x=12..69. There is no published counterpart to
+either, and they should not be read against it.
 
-### CCPD2019 stage ablation, province reconstruction, n = 1,000
+They are also not comparable to each other. The stage ablation masks **one cell,
+the province character alone**, in all 1,000 samples. The larger evaluation masks
+**two or three contiguous cells crossing the province boundary**, so every sample
+changes the Chinese character together with one or two alphanumerics — `沪E`,
+`鄂X2`, `晋KQ`. Two or three cells is a harder problem than one, which is most of
+why its scores are worse.
+
+The definitions are the same as the LP tables above, so all of these are consistent
+with those.
+
+### CCPD2019 stage ablation — province character only, 1 cell, n = 1,000
 
 | Setting | ACC ↑ | NED ↑ | FID ↓ | Full LPIPS ↓ | Region LPIPS ↓ |
 |---|---:|---:|---:|---:|---:|
@@ -101,10 +109,7 @@ tables above, so these numbers are consistent with those.
 | Both stages | 0.9920 | 0.9989 | 4.2468 | 0.0408 | 0.0174 |
 | Real photographs (ceiling) | 0.9960 | 0.9994 | — | — | — |
 
-### CCPD2019 larger evaluation, n = 1,000 each
-
-Spans here cross the province boundary — one contiguous run covering the Chinese
-character and one or more alphanumerics.
+### CCPD2019 mixed spans — province + alphanumerics, 2-3 cells, n = 1,000 each
 
 | | FID ↓ | Full ↓ | Region ↓ | per-cell ACC ↑ | NED ↑ |
 |---|---:|---:|---:|---:|---:|

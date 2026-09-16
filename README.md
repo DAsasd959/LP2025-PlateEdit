@@ -150,8 +150,10 @@ CCPD province reconstruction reaches ACC 0.9920 against a real-photograph ceilin
 of 0.9960. Province balancing lifts cross-province replacement from 0.4400 to
 0.8000 using under a quarter of the data.
 
-The CCPD figures are for editing the Chinese province character, which the
-published CCPD table does not cover.
+The CCPD figures cover two tasks the published CCPD table does not: editing the
+Chinese province character on its own, and editing a contiguous span that crosses
+the province boundary so one edit changes the Chinese character and one or two
+alphanumerics together.
 
 ## Scope
 
