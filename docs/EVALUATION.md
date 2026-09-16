@@ -65,6 +65,25 @@ there is negligible.
 
 ## Full results
 
+Each row below names the output directory it was measured from, so a figure can be
+traced back to the images behind it or recomputed.
+
+| Table row | Output directory | Task |
+|---|---|---|
+| LP — Ours (both stages) | `LP2024_ours_0420_27606` | LP reconstruction, 3,258 |
+| LP — Real data only | `LP2024_only_LP_0415_26964` | ablation |
+| LP — Synthetic only | `gen_onlysyn_lp` | ablation |
+| LP — No ODM loss | `LP2024_no_odm` | ablation |
+| CCPD — Stage 1 only | `EV_recon_S1_20k` | province reconstruction, 1 cell |
+| CCPD — Both stages | `EV_recon_S2_10k` | province reconstruction, 1 cell |
+| CCPD — Reconstruction | `BIG_recon` | mixed span, 2-3 cells |
+| CCPD — Replacement | `BIG_edit` | mixed span, 2-3 cells, provinces scheduled |
+
+CCPD directories live under `_eval_outputs/`. Two more are not in any table:
+`EV_cross1000_S2_10k` (cross-province edit, 1 cell, targets sampled at random so
+coverage is uneven) and `CS_alnum_edit` (alphanumeric-only edit, n=200, too few for
+a comparable FID).
+
 ### LP-2025 ablation, n = 3,258, native resolution
 
 | Setting | FID ↓ | Full LPIPS ↓ | Region LPIPS ↓ | ACC ↑ | NED ↑ |
@@ -131,12 +150,29 @@ LPIPS decomposes this way, FID and full-image LPIPS cannot):
 | Reconstruction | 0.0345 | **0.0151** | **0.0200** |
 | Replacement | 0.0609 | **0.0214** | **0.0406** |
 
-The Chinese character is the easier half in both, and replacement costs it far
-less: 0.0151 → 0.0214 for Chinese against 0.0200 → 0.0406 for alphanumerics. The
-province has 31 candidates whose shapes differ sharply; the alphanumeric pool has
-34 and contains 8/B, 0/O, 5/S. The two halves also sum to the whole — 0.0151 +
-0.0200 = 0.0351 against 0.0345 measured — because the sub-masks do not overlap and
-everything outside them is zero in both images.
+The two halves sum to the whole — 0.0151 + 0.0200 = 0.0351 against 0.0345 measured
+— because the sub-masks do not overlap and everything outside them is zero in both
+images.
+
+**Per-cell accuracy, split the same way** (`eval/ccpd/percell_acc_ccpd.py`, scoring
+only the cells each run masked):
+
+| | all edited cells | province cell | alphanumeric cells |
+|---|---:|---:|---:|
+| Reconstruction | 0.8982 | **0.8230** | **0.9481** |
+| Replacement | 0.6946 | **0.5150** | **0.8126** |
+
+**The two metrics disagree, and the disagreement is the point.** Region LPIPS makes
+the Chinese cell look like the easier half — 0.0214 against 0.0406 on replacement.
+Accuracy says the opposite: 0.5150 against 0.8126. The model paints something that
+reads convincingly as a Chinese character and frequently paints the wrong one. A
+province drawn as a different province is perceptually close and completely wrong,
+and only one of these two measures can tell.
+
+Replacement costs the province cell most: 0.8230 → 0.5150, a 37% drop, against 14%
+for the alphanumerics. This is the same lesson as the no-ODM row in the LP ablation
+— perceptual and distributional metrics cannot see whether the characters are the
+right characters.
 
 Ground truth for these two is cut from the CCPD2019 scene images by the bounding
 box of the filename's quadrilateral — the same rule `test_1000/plates` follows,

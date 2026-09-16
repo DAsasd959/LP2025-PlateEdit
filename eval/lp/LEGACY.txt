@@ -1,0 +1,12 @@
+eval_plate.py does not run.
+
+It is the paper's own LP inference script, kept as the record of how the published
+outputs were produced. Its paths point at external drives that are no longer
+attached, and it sets no random seed, so it is not reproducible even with the data
+restored.
+
+Use eval/lp/infer.py instead: same pipeline, with --seed and --prompt_mode, and
+paths taken from the command line.
+
+See eval/ccpd/LEGACY.txt for the same note about the CCPD side, and
+docs/EVALUATION.md for the metric definitions these scripts established.
