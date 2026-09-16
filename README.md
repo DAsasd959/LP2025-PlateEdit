@@ -32,22 +32,69 @@ Docs: [downloads](docs/CHECKPOINTS.md) · [data layout](docs/DATA.md) ·
 [evaluation](docs/EVALUATION.md) · [LP annotation](docs/ANNOTATION.md) ·
 [recognisers](docs/RECOGNIZER.md) · [synthesis](synth/README.md)
 
-## 🛠️ Installation
+## Getting started
+
+**1. Environment.**
 
 ```bash
-conda create -n flux_text python=3.10
-conda activate flux_text
+conda create -n flux_text python=3.10 && conda activate flux_text
 pip install -r requirements.txt
 ```
 
 `diffusers` is pinned to **0.32.2** — later releases dropped `USE_PEFT_BACKEND`,
-which `src/flux/` needs. The synthetic generators run in a second environment of
-their own; see [synth/README.md](synth/README.md).
+which `src/flux/` needs.
 
-Then download the base model, checkpoints and data — [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) lists every asset and where it goes.
-`weights/flux_base` is FLUX.1-Fill-dev from
-[HuggingFace](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev), quantised
-to NF4 on load — a pre-quantised copy is not needed.
+**2. Check it before you download 32 GB.**
+
+```bash
+bash smoke_test.sh
+```
+
+Runs everything that needs no weights and no GPU. A `--` line means "not downloaded
+yet" and names where to get it; only a `FAIL` is a broken environment.
+
+**3. Base model** — 32 GB, from HuggingFace, not a release asset:
+
+```bash
+huggingface-cli download black-forest-labs/FLUX.1-Fill-dev --local-dir weights/flux_base
+```
+
+Quantised to NF4 on load; a pre-quantised copy is not needed.
+
+**4. Checkpoints and data.** `R=https://github.com/DAsasd959/LP2025-PlateEdit/releases/download`
+
+```bash
+mkdir -p weights data/lp data/ccpd
+
+# LP: released checkpoint, perceptual loss, recogniser
+curl -L $R/v1.0/adapter_model.safetensors -o weights/lp_stage2_ckpt_27606/adapter_model.safetensors --create-dirs
+curl -L $R/v1.0/adapter_config.json       -o weights/lp_stage2_ckpt_27606/adapter_config.json
+curl -L $R/v1.0/epoch_100.pt              -o weights/odm_epoch_100.pt
+curl -L $R/v1.0/best_accuracy.pth         -o weights/trba_lp2025/best_accuracy.pth --create-dirs
+
+# CCPD: both stages, recogniser, and the subset with its conditions
+for f in ccpd_stage2_ckpt_10000 ccpd_stage1_ckpt_20000 lp_stage1_ckpt_21250 trba_ccpd_final; do
+  curl -L $R/v2.0/$f.tar.gz | tar xz -C weights
+done
+curl -L $R/v2.0/ccpd_subset.tar.gz | tar xz -C data/ccpd --strip-components=1
+
+# LP splits, each with filtered_plate + partial_{masks,glyphs,labels_txt}.
+# These three unpack at the archive root, so give each its own directory.
+mkdir -p data/lp/train data/lp/val data/lp/test
+curl -L $R/data-v1.0/lp2025_train.tar.gz | tar xz -C data/lp/train
+curl -L $R/data-v1.0/lp2025_val.tar.gz   | tar xz -C data/lp/val
+curl -L $R/data-v1.0/lp2025_test.tar.gz  | tar xz -C data/lp/test
+
+curl -L $R/v2.0/SHA256SUMS.txt -o weights/SHA256SUMS.txt   # sha256sum -c to verify
+```
+
+[docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) lists every asset, its size, and what
+it is. Two things are deliberately not published: the 32 GB base model above, and
+the synthetic stage-1 data — generate that with [`synth/`](synth/README.md), which
+runs in a second conda environment of its own.
+
+**5. Check again.** `bash smoke_test.sh` should now show no `--` lines except any
+part you chose to skip.
 
 ## 📦 Datasets
 
@@ -56,12 +103,10 @@ to NF4 on load — a pre-quantised copy is not needed.
 | LP-2025 | [AvLab-CV/LP2025](https://github.com/AvLab-CV/LP2025) | 2,569 train · 620 val · 3,258 test |
 | CCPD2019 | [detectRecog/CCPD](https://github.com/detectRecog/CCPD) | 1,777 train (province-balanced) · 90 val · 1,000 test |
 
-Both subsets, with their masks, glyphs and labels, are release assets. **Download
-them rather than rebuilding** if you want to reproduce the published numbers: the
-geometry is exact, but both builders draw the masked span at random and the
-original seeds were not recorded, so a rebuild measures a different set of edits.
-
-Synthetic stage-1 data is not published — generate it with `synth/`.
+Step 4 fetches the subsets, masks, glyphs and labels included. **Prefer them over
+rebuilding** if you want to reproduce the published numbers: the geometry is exact,
+but both condition builders draw the masked span at random and the original seeds
+were not recorded, so a rebuild measures a different set of edits.
 
 ## 🤗 Checkpoints
 
@@ -71,10 +116,8 @@ Synthetic stage-1 data is not published — generate it with `synth/`.
 | CCPD2019 | `ccpd_stage1_ckpt_20000` | **`ccpd_stage2_ckpt_10000`** | 20,000 synth / 500 val → 1,777 balanced / 90 val |
 
 Bold entries are the released checkpoints the published numbers come from. All are
-rank-32 QLoRA adapters over NF4-quantised FLUX.1-Fill-dev. Also released:
-`odm_epoch_100.pt` (perceptual loss, used by every run), `trba_lp2025` and
-`trba_ccpd_final` (recognisers for scoring), and the DeepSolo++ detector used to
-annotate LP photographs.
+rank-32 QLoRA adapters over NF4-quantised FLUX.1-Fill-dev. Stage 1 is there so you
+can warm-start stage 2 without retraining it.
 
 ## 🔥 Quick start
 
