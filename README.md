@@ -1,9 +1,15 @@
-# FLUX-Text-Plate — Style-Preserving Partial License-Plate Editing
+# StylePlate — Style-Preserving Partial License-Plate Editing
 
 Partial text editing for license plates: repaint a chosen span of characters while
-keeping the plate's own background, blur, illumination and stroke weight. Built on
-[FLUX-Text](https://github.com/AMAP-ML/FluxText) and keeping its layout, so the
-`src/`, `train/config/`, `train/script/` conventions carry over unchanged.
+keeping the plate's own background, blur, illumination and stroke weight.
+
+StylePlate is a derivative of [FLUX-Text](https://github.com/AMAP-ML/FluxText),
+not a fork of it and not affiliated with it. The directory layout is kept
+deliberately close to upstream — `src/`, `train/config/`, `train/script/`, `eval/`
+mean there what they mean here — so that anyone who knows FLUX-Text can navigate
+this. Everything specific to license plates is ours: the two-stage plate recipe,
+the synthetic generators, the annotation pipeline, and the CCPD seven-cell
+handling. See [Acknowledgement](#-acknowledgement) for what came from where.
 
 Two datasets are supported end to end — training, inference and evaluation:
 
