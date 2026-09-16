@@ -41,7 +41,8 @@ from PIL import Image
 from safetensors.torch import load_file
 from tqdm import tqdm
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))   # repository root, so `import src` works
 from src.flux.condition import Condition                    # noqa: E402
 from src.flux.generate_fill import generate_fill             # noqa: E402
 from src.train.model import OminiModelFIll                   # noqa: E402

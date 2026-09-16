@@ -33,7 +33,8 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))   # repository root, so `import src` works
 from src.flux.pipeline_tools import prepare_text_input
 
 from diffusers import FluxFillPipeline

@@ -27,14 +27,18 @@ import argparse
 import importlib.util
 import os
 import random
+import sys
 
 import cv2
 import numpy as np
 from PIL import Image, ImageFont
 from tqdm import tqdm
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-_spec = importlib.util.spec_from_file_location("cce", os.path.join(HERE, "ccpd_cn_edit.py"))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, ROOT)
+# lp_edit reuses the CCPD editor's machinery by monkeypatching it.
+_spec = importlib.util.spec_from_file_location(
+    "cce", os.path.join(ROOT, "eval", "ccpd", "ccpd_cn_edit.py"))
 CCE = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(CCE)      # 幾何 / glyph 繪製 / 模型載入 / debug 圖全部沿用
 
@@ -56,7 +60,7 @@ def main():
     ap.add_argument("--lp_root", default=LP_ROOT)
     ap.add_argument("--config", required=True)
     ap.add_argument("--lora", required=True)
-    ap.add_argument("--flux_dir", default=os.path.join(HERE, "FLUX.1-Fill-dev"))
+    ap.add_argument("--flux_dir", default=os.path.join(ROOT, "weights", "flux_base"))
     ap.add_argument("--target_mode", choices=["gt", "edit"], default="edit")
     ap.add_argument("--limit", type=int, default=3)
     ap.add_argument("--max_span", type=int, default=3,

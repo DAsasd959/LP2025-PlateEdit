@@ -30,6 +30,9 @@ from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 from safetensors.torch import load_file
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))   # repository root, so `import src` works
 from src.flux.condition import Condition
 from src.flux.generate_fill import generate_fill
 from src.train.model import OminiModelFIll
@@ -267,14 +270,13 @@ def draw_glyph2(font, render_text, polygon, width, height):
 def load_model():
     with open(CONFIG_PATH, "r") as f: config = yaml.safe_load(f)
     model = OminiModelFIll(
-        flux_pipe_id="FLUX.1-Fill-dev-nf4",
+        flux_pipe_id=os.environ.get("FLUX_DIR", "weights/flux_base"),
         lora_config=config["train"]["lora_config"],
         device="cuda",
         dtype=getattr(torch, config["dtype"]),
         optimizer_config=config["train"]["optimizer"],
         model_config=config.get("model", {}),
         gradient_checkpointing=True,
-        byt5_encoder_config=None,
     )
     state_dict = load_file(LORA_PATH)
     state_dict_new = {x.replace("lora_A", "lora_A.default").replace("lora_B", "lora_B.default").replace("transformer.", ""): v for x, v in state_dict.items()}

@@ -6,6 +6,9 @@ from PIL import Image
 import torch
 import yaml
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))   # repository root, so `import src` works
 from src.flux.condition import Condition
 from src.flux.generate_fill import generate_fill
 from src.train.model import OminiModelFIll

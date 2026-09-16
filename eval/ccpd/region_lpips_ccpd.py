@@ -24,7 +24,8 @@ SIZE = 512
 _s = importlib.util.spec_from_file_location(
     "cce", os.path.join(HERE, "eval", "ccpd", "ccpd_cn_edit.py"))
 CCE = importlib.util.module_from_spec(_s); sys.modules["cce"] = CCE; _s.loader.exec_module(CCE)
-_c = importlib.util.spec_from_file_location("cse", os.path.join(HERE, "cellset_edit.py"))
+_c = importlib.util.spec_from_file_location(
+    "cse", os.path.join(HERE, "eval", "ccpd", "cellset_edit.py"))
 CSE = importlib.util.module_from_spec(_c); sys.modules["cse"] = CSE; _c.loader.exec_module(CSE)
 
 
