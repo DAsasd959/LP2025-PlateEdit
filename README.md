@@ -30,16 +30,24 @@ contiguous span may cross the province boundary, so `皖A5` → `冀B7` is one e
 Both ship raw images. The **conditions** each model consumes — `partial_masks/`,
 `partial_glyphs/`, `partial_labels_txt/` — are derived:
 
-* **CCPD** — build them yourself, nothing is missing:
+* **CCPD** — build them yourself; the filename carries everything needed:
   ```bash
   python train/script/crop_plates_from_base.py --list <file-list> --out_root data/ccpd/crops
   python eval/ccpd/build_ccpd_conditions.py \
       --src data/ccpd/crops --out data/ccpd/test_1000 --province_ratio 0.5 --max_k 3
   ```
+  **To reproduce the published CCPD numbers, download the test conditions instead
+  of rebuilding them.** The cell geometry is exact — given the same span, the mask
+  this produces matches the published one at IoU 1.0000 on all 1,000 test plates —
+  but the span itself is drawn at random and the original seed was not recorded, so
+  a rebuild evaluates a different set of edits. Comparable numbers, not the same
+  numbers.
 * **LP-2025** — the derived conditions for the 2,569 / 620 / 3,258 splits are
-  published as a release asset. To build them for *your own* plates, use
-  `eval/lp/prepare_sample.py`, which takes a crop, the text it shows, and the
-  four corners of the text region.
+  published as a release asset, and for the same reason should be preferred over
+  rebuilding when reproducing published numbers. To build them for *your own*
+  plates, use `eval/lp/prepare_sample.py`, which takes a crop, the text it shows,
+  and the four corners of the text region; to annotate a whole set from scratch,
+  see [docs/ANNOTATION.md](docs/ANNOTATION.md).
 
 ---
 

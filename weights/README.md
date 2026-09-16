@@ -18,3 +18,18 @@ place them here, keeping these names — the configs and scripts refer to them.
 rather than from a release asset.
 
 Verify what you downloaded with `sha256sum -c checksums.txt`.
+
+## Conditions
+
+Two more release assets are not weights but are needed to reproduce the published
+numbers, because both condition builders draw their masked span at random and the
+original seeds were not recorded:
+
+| Asset | Size | Contents |
+|---|---:|---|
+| `lp2025_conditions.tar.gz` | ~56 MB | `partial_{masks,glyphs,labels_txt}` for the 2,569 / 620 / 3,258 LP splits |
+| `ccpd_test1000_conditions.tar.gz` | ~14 MB | the same three directories for the 1,000 CCPD test plates |
+
+Rebuilding them locally is supported and the geometry is exact — the CCPD builder
+reproduces the published masks at IoU 1.0000 given the same span — but a rebuild
+samples different spans, so it evaluates a different set of edits.
