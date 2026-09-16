@@ -15,7 +15,6 @@ import yaml
 from .condition import Condition
 from .transformer import tranformer_forward
 from .pipeline_tools import encode_images
-from ..text_encoder.byt5_encoder import GlyphByt5Encoder
 
 def get_config(config_path: str = None):
     config_path = config_path or os.environ.get("XFL_CONFIG")

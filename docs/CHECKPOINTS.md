@@ -1,36 +1,47 @@
-# Checkpoints
+# Downloads
 
-All adapters are rank-32 QLoRA over an NF4-quantised FLUX.1-Fill-dev. Download
-from Releases into `weights/`, keeping the directory names below, then
+Everything the code expects but does not ship. Extract into `weights/` keeping the
+directory names below — configs and scripts refer to them — then
 `sha256sum -c weights/checksums.txt`.
 
-| Directory | Size | Dataset | Stage | Notes |
-|---|---:|---|---|---|
-| `lp_stage1_ckpt_21250/` | 222 MB | LP-2025 synthetic | 1 | 21,250 batches x 8 = 170,000 image-views |
-| `lp_stage2_ckpt_27606/` | 222 MB | LP-2025 real | 2 | **the published LP checkpoint** |
-| `ccpd_stage1_ckpt_20000/` | 222 MB | CCPD synthetic | 1 | built with `--province_ratio 0.5` |
-| `ccpd_stage2_ckpt_10000/` | 222 MB | CCPD balanced real | 2 | **the published CCPD checkpoint** |
-| `odm_epoch_100.pt` | 677 MB | — | — | ODM perceptual loss, used by every run |
-| `trba_lp2025/` | 191 MB | — | — | TRBA recogniser for LP evaluation |
-| `trba_ccpd_final/` | 191 MB | — | — | TRBA recogniser for CCPD evaluation, 98.199% on real plates |
+## Weights
 
-`flux_base/` is not a release asset. Download FLUX.1-Fill-dev (32 GB) from
-https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev and place it at
-`weights/flux_base`. A pre-quantised NF4 copy is not needed: `src/train/model.py`
-applies `BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
-bnb_4bit_compute_dtype=bfloat16)` on load, which produces the same NF4 weights.
+| Extract to `weights/` | Size | Release · asset |
+|---|---:|---|
+| `flux_base/` | 32 GB | [HuggingFace](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev), not a release asset |
+| `lp_stage2_ckpt_27606/` | 222 MB | `v1.0` · `adapter_model.safetensors` + `adapter_config.json` |
+| `lp_stage1_ckpt_21250/` | 222 MB | `v2.0` · `lp_stage1_ckpt_21250.tar.gz` |
+| `ccpd_stage2_ckpt_10000/` | 222 MB | `v2.0` · `ccpd_stage2_ckpt_10000.tar.gz` |
+| `ccpd_stage1_ckpt_20000/` | 222 MB | `v2.0` · `ccpd_stage1_ckpt_20000.tar.gz` |
+| `odm_epoch_100.pt` | 677 MB | `v1.0` · `epoch_100.pt` |
+| `trba_lp2025/` | 191 MB | `v1.0` · `best_accuracy.pth` |
+| `trba_ccpd_final/` | 191 MB | `v2.0` · `trba_ccpd_final.tar.gz` |
+| `deepsolo/r50_data3_multilingual_finetune.pth` | 173 MB | `v2.0` · `deepsolo_r50_multilingual.pth` — rename on extract; only for annotating new LP photographs |
+
+Stage 2 of each dataset is the published checkpoint; stage 1 is there so you can
+warm-start stage 2 without retraining it. Adapters are rank-32 QLoRA over
+NF4-quantised FLUX.1-Fill-dev and inherit its non-commercial terms.
+`odm_epoch_100.pt` comes from upstream FLUX-Text, not from this project.
+
+## Data
+
+| Extract to `data/` | Size | Release · asset |
+|---|---:|---|
+| `lp/{train,val,test}/` | 347 MB | `data-v1.0` · `lp2025_{train,val,test}.tar.gz` |
+| `ccpd/` | 48 MB | `v2.0` · `ccpd_subset.tar.gz` — 1,860 balanced train, 93 val, 1,000 test with conditions |
+| CCPD2019 source | 177 MB | `dataset-v1.0` · `dataset_ccpd2019.tar.gz` |
+| LP stage-1 synthetic | 3.2 GB | `stage1-v1.0` · `lp2025_stage1.tar.gz.part{0,1}` — `cat` them before extracting |
+
+Prefer these over rebuilding conditions yourself. The geometry is exact — a CCPD
+rebuild reproduces the published masks at IoU 1.0000 given the same span — but the
+span is drawn at random and the original seeds were not recorded, so a rebuild
+measures a different set of edits.
 
 ## Checkpoint naming
 
-`src/train/callbacks.py` increments its counter once per **batch**, not per
-optimizer update. A checkpoint named `ckpt/21250` is therefore 21,250 batches. At
-the paper's batch size of 8 that is 170,000 image-views, or about 8.5 epochs over
-the 20,000 synthetic plates. Training the same schedule at batch 1 x accum 64
-produces the identical model at `ckpt/170000`.
+`src/train/callbacks.py` counts **batches**, not optimizer updates. `ckpt/21250` is
+21,250 batches; at batch 8 that is 170,000 image-views, and the same point trained
+at batch 1 lands at `ckpt/170000`.
 
-## Stage 2 warm start
-
-Stage 2 resumes from a stage-1 adapter through `reuse_lora_path`. Point it either
-at your own stage-1 output or at the released stage-1 adapter. Do not warm-start
-stage 1 itself: it uses Prodigy, whose D-adaptation suppresses the learned rate
-when starting from converged weights. That is why stage 2 switches to AdamW.
+Do not warm-start stage 1 — it uses Prodigy, whose D-adaptation suppresses the
+learned rate from converged weights. That is why stage 2 switches to AdamW.

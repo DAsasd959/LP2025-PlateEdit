@@ -4,11 +4,11 @@
 
 ```bash
 # image fidelity -- FID, full-frame LPIPS, masked-region LPIPS
-python eval/lp/eval_image.py --gen_dir outputs/lp_recon \
+python eval/eval_image.py --gen_dir outputs/lp_recon \
     --real_dir data/lp/test/filtered_plate --mask_dir data/lp/test/partial_masks
 
 # text accuracy -- needs a clone of deep-text-recognition-benchmark
-python eval/lp/eval_ocr.py --image_folder outputs/lp_recon \
+python eval/eval_ocr.py --image_folder outputs/lp_recon \
     --saved_model weights/trba_lp2025/best_accuracy.pth --dtr_root <clone>
 
 # CCPD, per-cell accuracy and region LPIPS

@@ -1,68 +1,90 @@
-# Stage 1 -- pretraining on synthetic Taiwanese plates.
+# Stage 1 -- RTX 3090 (24 GB) variant of configs/lp2025_stage1.yaml.
 #
-# These are the original run's own values, read out of the config Lightning
-# wrote at startup: runs_word_fill_plate_512/20260415-150207/config.yaml. That
-# run's ckpt/21250 is what the released stage-2 checkpoint resumes from
-# (see reuse_lora_path in configs/lp2025_train.yaml).
+# WHY THIS FILE EXISTS
+#   configs/lp2025_stage1.yaml holds the values the paper run actually used,
+#   read out of runs_word_fill_plate_512/20260415-150207/config.yaml. That run
+#   was on an H100. The thesis says so in 4.1:
 #
-# WHAT A "STEP" MEANS HERE
-#   src/train/callbacks.py increments its counter once per batch, not per
-#   optimizer step. With batch_size 8, the original 21,250 steps are 170,000
-#   image-views -- about 8.7 epochs over 20,000 synthetic plates, not one.
-#   Effective batch is 8 x 8 = 64, matching stage 2.
+#     "Stage 1 synthetic pretraining is accelerated using a single NVIDIA H100
+#      GPU, while the proposed framework can also be trained on a single NVIDIA
+#      RTX 4090 (24GB) GPU with a longer training time."
 #
-# IF THE SCHEDULE IS TIGHT
-#   Taiwanese plates are alphanumeric only -- the corpus this data came from
-#   (41,513 plates) uses exactly `-0123456789A-Z`, no CJK. The matching CCPD
-#   stage-1 run needed its full length solely to feed 31 Chinese province
-#   glyphs; for 36 alphanumeric classes an earlier CCPD probe reached 40/40
-#   correct edits, stroke weight indistinguishable from real plates, at ~74
-#   updates per class. A third of this schedule stays far above that. Shorten
-#   it with a command-line override rather than by editing this file, so the
-#   default keeps matching the paper.
+#   batch_size 8 does not fit in 24 GB. Measured on this 3090:
+#     bs 8                          OOM in bnb.matmul_4bit, short 360 MiB
+#     bs 8 + expandable_segments    OOM in bnb.matmul_4bit, short  72 MiB
+#     bs 4 / accum 16               OOM in the VAE decoder,  short 512 MiB
+#   bs 4 clears the whole transformer forward and only dies later, in the ODM
+#   loss's VAE decode (model.py:273) -- that decode keeps a full autograd graph
+#   and is not gradient-checkpointed, so it is the memory wall, not the
+#   transformer. See lp2025_stage1_3090.yaml for the bs 4 attempt.
 #
-# WHY THERE IS NO reuse_lora_path
-#   Stage 1 starts from the base FLUX weights; the original run set none.
-#   Stage 2 is what resumes. Do not warm-start this stage -- it uses Prodigy,
-#   which suppresses its learned rate from warm weights. That is exactly why
-#   stage 2 switches to AdamW.
-flux_path: ./weights/flux_base                      # set FLUX_QUANTIZE=none on ROCm
+# WHAT CHANGES AND WHAT DOES NOT
+#   Effective batch stays 64 (1 x 64, as against the paper's 8 x 8), so the
+#   optimizer sees exactly the same updates. max_steps counts OPTIMIZER steps,
+#   so 2656 is unchanged -- and 2656 is the thesis's own reported figure
+#   ("Stage 1 uses the Prodigy optimizer for approximately 2.65K steps"), not a
+#   number derived here. Nothing else about the recipe moves.
+#
+#   The intervals do move, because callbacks.py counts BATCHES, not optimizer
+#   steps, and there are now 8x as many batches per update. Each one is scaled
+#   by 8 so it fires after the same number of image-views as the paper run:
+#     save_interval        1250 ->  10000
+#     sample_interval      1000 ->   8000
+#     val_check_interval   1250 ->  10000
+#     limit_val_batches     125 ->    1000   (same 1,000 validation images)
+#
+# CHECKPOINT NAMES WILL DIFFER
+#   Checkpoints are named by callbacks.total_steps, i.e. batches. The paper's
+#   final stage-1 save is ckpt/21250 (21,250 batches x bs 8 = 170,000 views).
+#   Here the same point is ckpt/170000. If you then retrain stage 2 on top of
+#   it, point configs/lp2025_train.yaml's reuse_lora_path at ckpt/170000 --
+#   weights/stage1_ckpt_21250 is a symlink to the PAPER's stage-1 output and
+#   stays valid for reproducing the released stage-2 run.
+#
+# MEASURED COST ON THIS MACHINE
+#   4.167 s/batch at bs 1 with gradient checkpointing (bench_both.log steady
+#   state; scripts/bench.sh header independently records 4.46 s/step for the
+#   CCPD stage-1 run on the same card). 2,656 x 64 = 169,984 batches:
+#     training     169,984 x 4.167 s  =  196.8 h
+#     validation    17 rounds x ~0.8 h =  ~13 h
+#     total                            = ~210 h  ~= 8.7 days
+#   Free the ~1.1 GB the desktop holds before starting:
+#     sudo systemctl isolate multi-user.target
+#   and run with PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True.
+#
+# IF 8.7 DAYS IS TOO LONG
+#   Taiwanese plates are alphanumeric only; the corpus behind this data uses
+#   exactly `-0123456789A-Z`. The matching CCPD stage-1 run needed its full
+#   length solely to cover 31 Chinese province glyphs. An earlier CCPD probe
+#   reached 40/40 correct edits at ~74 updates per class. A third of this
+#   schedule stays far above that. Override on the command line rather than
+#   editing this file, so the default keeps matching the paper:
+#     max_steps=885  ->  56,640 batches  ->  ~66 h  ~= 2.7 days
+flux_path: ./weights/flux_base                      # FP16 dir; model.py quantises to NF4 on load
 dtype: "bfloat16"
 model_type: flux_fill
 
 train:
-  batch_size: 8
-  accumulate_grad_batches: 8                      # effective batch 64
+  batch_size: 1                                   # paper: 8 (H100)
+  accumulate_grad_batches: 64                     # paper: 8  -- effective batch is 64 either way
   dataloader_workers: 8
-  # 21,250 batches x 8 = 170,000 image-views. The original run set max_steps: -1
-  # and kept going to 28,750; 21,250 is the save stage 2 actually resumed from.
-  max_steps: 2656                                 # 21,250 batch ÷ accum 8。Lightning 的 max_steps 算優化器步，
-                                                  # callbacks.total_steps 才是 batch（檢查點 ckpt/21250 用後者命名）。
-                                                  # 論文那次是 max_steps -1 手動停在 batch 21,250。
-  save_interval: 1250
-  sample_interval: 1000
-  # Trades memory for speed and is numerically identical either way. Required
-  # on a 24 GB card; on an MI300X (96 GiB) turning it off is ~1.3x faster.
-  # The original run had this on, on a 24 GB card. It is numerically identical
-  # either way, so leaving it off on a 96 GiB MI300X changes nothing but speed.
-  gradient_checkpointing: true      # 與論文那次一致（20260415-150207/config.yaml）；設 false 在 24 GB 上會 OOM
-  save_path: runs_lp2025_stage1
+  max_steps: 2656                                 # optimizer steps; thesis 4.1 reports ~2.65K
+  save_interval: 10000                            # 1250 x 8 -- same image-view cadence
+  sample_interval: 8000                           # 1000 x 8
+  gradient_checkpointing: true                    # required at 24 GB; numerically identical
+  save_path: runs_lp2025_stage1_3090
 
   condition_type: "word_fill"
-  # limit_val_batches belongs at this level, not under dataset — train.py reads
-  # training_config.get("limit_val_batches"). Nested, it is silently ignored and
-  # every validation walks the whole split.
-  limit_val_batches: 125
+  # limit_val_batches belongs at this level, not under dataset -- train.py reads
+  # training_config.get("limit_val_batches"). Nested, it is silently ignored.
+  limit_val_batches: 1000                         # 125 x 8 -- still 1,000 validation images
   dataset:
-    # The original run used 20,000 train and a separately generated 1,000-sample
-    # validation set. The released data splits one 20,000 generation 19,500/500,
-    # a 2.5% shortfall on train and a smaller validation set. Nothing else differs.
-    train_cache_root: ./cache/stage1_train        # 20,000 synthetic samples (paper §4.2)
-    valid_cache_root: ./cache/stage1_val          #  1,000 held out (125 batches x bs 8)
+    train_cache_root: ./cache/stage1_train        # 20,000 synthetic samples (paper 4.2)
+    valid_cache_root: ./cache/stage1_val          #  1,000 held out
     type: "word"
     glyph_scale: 1
     image_size: 512
-    val_check_interval: 1250
+    val_check_interval: 10000                     # 1250 x 8; must stay <= 20,000 (one epoch at bs 1)
 
   wandb:
     project: "LP2025-PlateEdit"
@@ -73,7 +95,8 @@ train:
     init_lora_weights: "gaussian"
     target_modules: "(.*x_embedder|.*(?<!single_)transformer_blocks\\.[0-9]+\\.norm1\\.linear|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_k|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_q|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_v|.*(?<!single_)transformer_blocks\\.[0-9]+\\.attn\\.to_out\\.0|.*(?<!single_)transformer_blocks\\.[0-9]+\\.ff\\.net\\.2|.*single_transformer_blocks\\.[0-9]+\\.norm\\.linear|.*single_transformer_blocks\\.[0-9]+\\.proj_mlp|.*single_transformer_blocks\\.[0-9]+\\.proj_out|.*single_transformer_blocks\\.[0-9]+\\.attn.to_k|.*single_transformer_blocks\\.[0-9]+\\.attn.to_q|.*single_transformer_blocks\\.[0-9]+\\.attn.to_v|.*single_transformer_blocks\\.[0-9]+\\.attn.to_out)"
 
-  # Stage 1 uses Prodigy at lr=1; stage 2 switches to AdamW. See the note above.
+  # Stage 1 uses Prodigy at lr=1; stage 2 switches to AdamW. Do not warm-start
+  # this stage -- Prodigy suppresses its learned rate from warm weights.
   optimizer:
     type: "Prodigy"
     params:

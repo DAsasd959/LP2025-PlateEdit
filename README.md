@@ -18,29 +18,19 @@ directories mean the same thing in both.
 
 ## Where things are
 
-| I want to… | Go to |
-|---|---|
-| **Run the released checkpoints** | `eval/lp/infer.py`, `eval/lp/lp_edit.py`, `eval/ccpd/mixed_span_edit.py` — weights from [Releases](../../releases) into `weights/` |
-| **Train it myself** | `train/script/train_{lp,ccpd}_stage{1,2}.sh` + `train/config/{lp,ccpd}/` |
-| **Build the training cache** | `train/script/build_cache_stage1.sh`, `build_cache.sh`, `cn_preprocess.py` |
-| **Generate synthetic plates** | `synth/tw/` and `synth/cn/` — see [synth/README.md](synth/README.md) |
-| **Prepare my own plate photos** | LP: `eval/lp/prepare_sample.py`, `train/script/annotate_lp.py` · CCPD: `train/script/crop_plates_from_base.py`, `eval/ccpd/build_ccpd_conditions.py` |
-| **Score the output** | `eval/{lp,ccpd}/eval_image.py`, `eval_ocr.py` — see [docs/EVALUATION.md](docs/EVALUATION.md) |
-| **Understand the data layout** | [docs/DATA.md](docs/DATA.md) |
-| **Retrain the scoring recogniser** | [docs/RECOGNIZER.md](docs/RECOGNIZER.md) |
-| **Know which checkpoint is which** | [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) |
-| **Annotate LP plates from scratch** | [docs/ANNOTATION.md](docs/ANNOTATION.md) |
+| | LP-2025 | CCPD2019 |
+|---|---|---|
+| Inference | `eval/lp/infer.py` · `lp_edit.py` | `eval/ccpd/mixed_span_edit.py` |
+| Training | `train/script/train_lp_stage{1,2}.sh` | `train/script/train_ccpd_stage{1,2}.sh` |
+| Configs | `train/config/lp/` | `train/config/ccpd/` |
+| Cache | `train/script/build_cache_stage1.sh` · `build_cache.sh` | `build_cache_stage1.sh` · `cn_preprocess.py` |
+| Prepare your own plates | `eval/lp/prepare_sample.py` · `train/script/annotate_lp.py` | `train/script/crop_plates_from_base.py` · `eval/ccpd/build_ccpd_conditions.py` |
+| Synthetic data | `synth/tw/` | `synth/cn/` |
+| Scoring | `eval/eval_image.py` · `eval/eval_ocr.py` | + `eval/ccpd/eval_ccpd.py` |
 
-```
-src/                model, data pipeline, losses          (unchanged from upstream)
-train/config/       lp/  ccpd/          runnable configs + the published runs' originals
-train/script/       training entry points + cache building + CCPD preprocessing
-eval/               lp/  ccpd/          inference and metrics
-synth/              tw/  cn/            synthetic-plate generators
-font/  assets/  docs/  weights/
-```
-
----
+Docs: [downloads](docs/CHECKPOINTS.md) · [data layout](docs/DATA.md) ·
+[evaluation](docs/EVALUATION.md) · [LP annotation](docs/ANNOTATION.md) ·
+[recognisers](docs/RECOGNIZER.md) · [synthesis](synth/README.md)
 
 ## 🛠️ Installation
 
@@ -53,7 +43,7 @@ pip install -r requirements.txt
 `diffusers` is pinned to **0.32.2** — later releases dropped `USE_PEFT_BACKEND`,
 which `src/flux/` needs.
 
-Then put the base model and checkpoints under `weights/` ([weights/README.md](weights/README.md)).
+Then download the base model, checkpoints and data — [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) lists every asset and where it goes.
 `weights/flux_base` is FLUX.1-Fill-dev from
 [HuggingFace](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev), quantised
 to NF4 on load — a pre-quantised copy is not needed.
@@ -134,7 +124,7 @@ python train/script/cn_preprocess.py --src data/ccpd/crops \
     --out cache/ccpd_stage2_train --province_ratio 0.5 --max_k 2             # CCPD stage 2
 
 # 2. train
-bash train/script/train_lp_stage1_3090.sh      # 24 GB card; _stage1.sh is the H100 recipe
+bash train/script/train_lp_stage1.sh           # 24 GB; _h100.sh is the published batch-8 recipe
 bash train/script/train_lp_stage2.sh
 bash train/script/train_ccpd_stage1.sh
 bash train/script/train_ccpd_stage2.sh
@@ -144,7 +134,7 @@ Set `reuse_lora_path` in the stage-2 config first. `WANDB_API_KEY` comes from th
 environment or `~/.netrc`; without one, training runs and logging is skipped.
 
 **GPU memory.** LP stage 1 as published ran on an H100 at batch 8, which does not
-fit 24 GB. `train_lp_stage1_3090.sh` uses batch 1 × accum 64 — same effective batch
+fit 24 GB. `train_lp_stage1.sh` uses batch 1 × accum 64 — same effective batch
 of 64, same 2,656 optimizer steps, measured 4.167 s/batch, about 8.8 days.
 
 **Steps count batches, not optimizer updates.** `ckpt/21250` is 21,250 batches; at
