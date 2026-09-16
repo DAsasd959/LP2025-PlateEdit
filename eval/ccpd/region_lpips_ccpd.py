@@ -63,10 +63,10 @@ def main():
                 n_miss += 1; continue
             real = Image.open(rp).convert("RGB")
             W, H = real.size
-            ta = to_tensor(real.resize((SIZE, SIZE), Image.BICUBIC)).to(dev)
+            ta = to_tensor(real.resize((SIZE, SIZE), Image.BILINEAR)).to(dev)
             gen = Image.open(gp).convert("RGB")
             if gen.size != (SIZE, SIZE):
-                gen = gen.resize((SIZE, SIZE), Image.BICUBIC)
+                gen = gen.resize((SIZE, SIZE), Image.BILINEAR)
             tb = to_tensor(gen).to(dev)
 
             quad, _, _ = CCE.parse_ccpd_filename(stem)
