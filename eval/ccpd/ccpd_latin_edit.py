@@ -23,6 +23,9 @@ import importlib.util
 import os
 import random
 import sys
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.dirname(
+    _os.path.abspath(__file__)))))   # repository root, so `import src` works
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("cce", os.path.join(HERE, "ccpd_cn_edit.py"))

@@ -45,6 +45,9 @@ import sys
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.dirname(
+    _os.path.abspath(__file__)))))   # repository root, so `import src` works
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 

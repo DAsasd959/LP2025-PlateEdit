@@ -29,6 +29,9 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.dirname(
+    _os.path.abspath(__file__)))))   # repository root, so `import src` works
 
 # 注意：torch / yaml / safetensors / src.* 都在 load_model() 與 run_single() 內才 import，
 # 這樣 --dry_run 可以在沒有 FLUX 環境的機器上檢查幾何與字型覆蓋。
