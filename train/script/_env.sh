@@ -1,11 +1,15 @@
 # Shared environment for every training script. Sourced, not executed.
 #
-# WANDB_API_KEY is never stored in this repository. Provide it one of three ways:
-#   1. export WANDB_API_KEY=...        in your shell
-#   2. a ~/.netrc entry for api.wandb.ai   (machine api.wandb.ai / login user / password <key>)
-#   3. leave it unset — training still runs, wandb logging is skipped
-# src/train/train.py asserts the variable is set only when the config has a
-# `wandb:` block, so option 3 means commenting that block out of the YAML.
+# Runs log to YOUR wandb account, not to anyone else's. No key is stored in this
+# repository, and none is needed to train.
+#
+#   WANDB_API_KEY   your own key. Export it, or put it in ~/.netrc under
+#                   `machine api.wandb.ai`. Leave it unset and training runs with
+#                   logging skipped -- one printed line, nothing else changes.
+#   WANDB_PROJECT   project name, overriding whatever the config says
+#   WANDB_ENTITY    account or team to log under; defaults to the key's owner
+#
+# Never commit a key. It is an account credential, not a setting.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."          # repo root
 

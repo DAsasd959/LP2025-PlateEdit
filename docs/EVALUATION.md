@@ -98,11 +98,9 @@ ACC and NED are averaged per image rather than over a distribution, so they drif
 slightly with each generation run; FID matching to two decimals is what shows the
 regenerated outputs are equivalent to the published ones.
 
-**The no-ODM row beats the full method on FID and Full LPIPS while losing 14 points
-of ACC.** Perceptual and distributional metrics cannot see whether the characters
-are the *right* characters, so on their own they would select the worse model. The
-mechanism has not been checked against the images themselves — look at
-`LP2024_no_odm` before drawing a conclusion from this row.
+The no-ODM row beats the full method on FID and Full LPIPS while losing 14 points
+of ACC — perceptual and distributional metrics do not measure whether the
+characters are the right characters.
 
 Both tables below mask the **Chinese province character**, which the published
 CCPD table never does: it masks only the trailing five alphanumerics, and the

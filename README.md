@@ -130,8 +130,12 @@ bash train/script/train_ccpd_stage1.sh
 bash train/script/train_ccpd_stage2.sh
 ```
 
-Set `reuse_lora_path` in the stage-2 config first. `WANDB_API_KEY` comes from the
-environment or `~/.netrc`; without one, training runs and logging is skipped.
+Set `reuse_lora_path` in the stage-2 config first.
+
+Runs log to **your own** wandb account: export `WANDB_API_KEY`, or put it in
+`~/.netrc` under `machine api.wandb.ai`. `WANDB_PROJECT` and `WANDB_ENTITY`
+override the project and the account or team without editing a config. Leave the
+key unset and training runs exactly the same, with logging skipped.
 
 **GPU memory.** LP stage 1 as published ran on an H100 at batch 8, which does not
 fit 24 GB. `train_lp_stage1.sh` uses batch 1 × accum 64 — same effective batch

@@ -42,12 +42,20 @@ def get_config():
 
 
 def init_wandb(wandb_config, run_name):
+    """Log to whoever is running this, not to whoever wrote the config.
+
+    The run lands in the account the API key belongs to. WANDB_PROJECT and
+    WANDB_ENTITY override the project name and the account or team it goes to, so
+    the config file does not have to be edited to train under your own name. With
+    no key set, this prints one line and training continues without logging.
+    """
     import wandb
 
     try:
         assert os.environ.get("WANDB_API_KEY") is not None
         wandb.init(
-            project=wandb_config["project"],
+            project=os.environ.get("WANDB_PROJECT") or wandb_config["project"],
+            entity=os.environ.get("WANDB_ENTITY") or None,
             name=run_name,
             config={},
         )
