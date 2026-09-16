@@ -41,7 +41,8 @@ pip install -r requirements.txt
 ```
 
 `diffusers` is pinned to **0.32.2** — later releases dropped `USE_PEFT_BACKEND`,
-which `src/flux/` needs.
+which `src/flux/` needs. The synthetic generators run in a second environment of
+their own; see [synth/README.md](synth/README.md).
 
 Then download the base model, checkpoints and data — [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md) lists every asset and where it goes.
 `weights/flux_base` is FLUX.1-Fill-dev from

@@ -37,7 +37,14 @@ is in this repository.
 
 ## Generating
 
+The generators run in **their own environment**, not the training one: they need
+pygame and Augmentor, and they never touch a diffusion model.
+
 ```bash
+conda create -n synthtext python=3.10
+conda activate synthtext
+pip install -r synth/requirements.txt
+
 cd synth/tw                     # or synth/cn
 # edit cfg.py: sample_num and save_name
 python datagen.py

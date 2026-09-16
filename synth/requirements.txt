@@ -1,0 +1,17 @@
+# The generators need their own environment. They pull in pygame and Augmentor,
+# which the training environment does not, and they never load a diffusion model,
+# so there is nothing to gain from sharing one.
+#
+#   conda create -n synthtext python=3.10
+#   conda activate synthtext
+#   pip install -r synth/requirements.txt
+#
+# Versions are the ones the published synthetic sets were generated with.
+pygame==2.6.1
+Augmentor==0.2.12
+numpy==1.26.4
+opencv-python==4.11.0.86
+pillow==9.5.0
+scipy==1.15.3
+matplotlib==3.10.9
+tqdm==4.69.0

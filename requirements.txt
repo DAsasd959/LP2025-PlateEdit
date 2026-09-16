@@ -31,6 +31,9 @@ pyyaml
 tqdm
 wandb
 
+# The synthetic generators are not installed by this file -- they need pygame and
+# Augmentor in an environment of their own. See synth/requirements.txt.
+
 # Evaluation only
 lpips
 pytorch-fid

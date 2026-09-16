@@ -29,6 +29,10 @@ NF4-quantised FLUX.1-Fill-dev and inherit its non-commercial terms.
 |---|---:|---|
 | `lp/{train,val,test}/` | 347 MB | `data-v1.0` · `lp2025_{train,val,test}.tar.gz` |
 | `ccpd/` | 48 MB | `v2.0` · `ccpd_subset.tar.gz` — 1,860 balanced train, 93 val, 1,000 test with conditions |
+
+The archive holds 1,860 training images; 1,777 of them cache successfully and are
+what the published run trained on, which is the figure the tables report. Same for
+validation: 93 images, 90 cached.
 | CCPD2019 source | 177 MB | `dataset-v1.0` · `dataset_ccpd2019.tar.gz` |
 | LP stage-1 synthetic | 3.2 GB | `stage1-v1.0` · `lp2025_stage1.tar.gz.part{0,1}` — `cat` them before extracting |
 
