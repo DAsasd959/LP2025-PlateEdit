@@ -121,25 +121,39 @@ can warm-start stage 2 without retraining it.
 
 ## 🔥 Quick start
 
+Reconstruction puts the original characters back; replacement writes different
+ones. Both are the same script under `--target_mode`, and **the two scripts default
+to opposite modes**, so name it explicitly.
+
 ```bash
-# LP -- reconstruct the test split with the released checkpoint
+LP=weights/lp_stage2_ckpt_27606/adapter_model.safetensors
+CN=weights/ccpd_stage2_ckpt_10000/adapter_model.safetensors
+
+# LP, reconstruction -- reads the published conditions, so this is the one that
+# reproduces the published numbers
 python eval/lp/infer.py --data_root data/lp/test --config train/config/lp/lp2025_train.yaml \
-    --lora weights/lp_stage2_ckpt_27606/adapter_model.safetensors \
-    --flux_dir weights/flux_base --out outputs/lp_recon --limit 3 --compare
+    --lora $LP --flux_dir weights/flux_base --out outputs/lp_recon --limit 3 --compare
 
-# LP -- replace characters
+# LP, replacement
 python eval/lp/lp_edit.py --target_mode edit --lp_root data/lp/test \
-    --lora weights/lp_stage2_ckpt_27606/adapter_model.safetensors \
-    --flux_dir weights/flux_base --max_span 2 --limit 100 --out outputs/lp_edit
+    --lora $LP --flux_dir weights/flux_base --max_span 2 --limit 100 --out outputs/lp_edit
 
-# CCPD -- province and alphanumeric in one span (--dry_run previews without a GPU)
+# CCPD, reconstruction -- province and alphanumerics in one span
+python eval/ccpd/mixed_span_edit.py --target_mode gt --span_mode cross --max_k 3 \
+    --lora $CN --flux_dir weights/flux_base --limit 200 --out outputs/ccpd_recon
+
+# CCPD, replacement
 python eval/ccpd/mixed_span_edit.py --target_mode edit --span_mode cross --max_k 3 \
-    --lora weights/ccpd_stage2_ckpt_10000/adapter_model.safetensors \
-    --flux_dir weights/flux_base --limit 200 --out outputs/ccpd_edit
+    --lora $CN --flux_dir weights/flux_base --limit 200 --out outputs/ccpd_edit
 ```
 
-`ccpd_cn_edit.py` (province only) and `ccpd_latin_edit.py` (alphanumeric only)
-remain available for ablations.
+`--dry_run` on the CCPD editor previews masks and glyph alignment without loading
+a model — worth running once before committing a GPU to a long job.
+
+`lp_edit.py --target_mode gt` also reconstructs, but by re-rendering the glyph from
+the annotated corners rather than reading the published one; use `infer.py` when
+the published numbers are the point. `ccpd_cn_edit.py` (province only) and
+`ccpd_latin_edit.py` (alphanumeric only) remain available for ablations.
 
 **Your own plate.** Supply the crop, the text it shows and the four corners of the
 text region:
