@@ -1,0 +1,19 @@
+The generator engine in this directory is not covered by the repository's MIT
+licence.
+
+synth/tw/Synthtext/ and synth/cn/Synthtext/ derive from SRNet-Datagen:
+
+    Copyright (c) 2019 Netease Youdao Information Technology Co., Ltd.
+    Licensed under the GPL License
+    Written by Yu Qian
+
+Twelve source files carry that header. They remain under the GPL. If you
+distribute modified versions, the GPL's terms apply to what you distribute,
+including the requirement to provide source.
+
+The plate-specific configuration around them -- cfg.py, datagen.py,
+cn_datagen_run.py, data_cfg.py's parameter block, and this repository's
+documentation -- is original work, but it is written against GPL code and is
+distributed here together with it. Treat the directory as a whole as GPL.
+
+See ../LICENSE for how this relates to the rest of the repository.

@@ -20,15 +20,47 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
----
+================================================================================
+WHAT THE MIT GRANT ABOVE DOES AND DOES NOT COVER
+================================================================================
 
-This licence covers the source code in this repository only.
+It covers the work original to this repository: train/script/, eval/, docs/,
+the configs, and the plate-specific additions. It does not and cannot cover
+third-party code and weights redistributed here under their own terms, listed
+below. Where they conflict, theirs govern.
 
-Model weights released alongside it are derivatives of FLUX.1-Fill-dev and are
-governed by the FLUX.1 [dev] Non-Commercial License from Black Forest Labs,
-which also governs images generated with them.
+synth/ -- GPL
+    synth/tw/Synthtext/ and synth/cn/Synthtext/ derive from SRNet-Datagen,
+    Copyright (c) 2019 Netease Youdao Information Technology Co., Ltd., written
+    by Yu Qian, released under the GPL. Twelve files carry that header. GPL is
+    copyleft: derivatives must also be GPL and ship their source. It is not
+    compatible with relicensing under MIT, so those files keep their own terms
+    and the MIT grant above does not extend to them. They are a standalone data
+    generation tool -- nothing under src/ imports them at runtime -- but if you
+    redistribute a modified synth/, GPL applies to what you ship.
 
-Third-party components keep their own terms: parts of src/ derive from FLUX-Text
-(AMAP-ML), the synthetic generator from SRNet-Datagen (Netease Youdao, GPL), the
-background images from SynthText, and the two fonts in font/ from their
-respective foundries. See font/README.md and synth/README.md.
+src/ -- upstream licence unstated
+    src/ derives from FLUX-Text (https://github.com/AMAP-ML/FluxText), which as
+    of this writing publishes no LICENSE file and states no terms. Code with no
+    stated licence grants no rights by default. This is the upstream project's
+    gap, not something this repository can resolve; treat src/ as usable for
+    research and seek permission from its authors before anything else.
+
+Released model weights -- FLUX.1 [dev] Non-Commercial License
+    Every adapter released alongside this repository is a LoRA over
+    FLUX.1-Fill-dev, distributed by Black Forest Labs under the FLUX.1 [dev]
+    Non-Commercial License. That licence governs the base weights, the adapters
+    derived from them, and images generated with either. odm_epoch_100.pt comes
+    from FLUX-Text; the TRBA recognisers derive from
+    deep-text-recognition-benchmark (Clova AI, Apache-2.0); the DeepSolo++
+    detector keeps its own terms.
+
+Fonts and data
+    TWGen7_V1.ttf, CCDP_TEXT0620.ttf and 正黑體.ttf are third-party typefaces
+    redistributed for research reproduction; see font/README.md. SynthText
+    backgrounds are downloaded from their authors, not redistributed. CCPD2019
+    and LP-2025 keep their publishers' terms.
+
+If you intend to use any of this commercially, resolve the FLUX.1 [dev]
+non-commercial restriction and the src/ licensing gap first. This file is a
+description of what is here, not legal advice.
