@@ -33,20 +33,15 @@ resolutions without extra preprocessing"; LPIPS compares pixel for pixel, so it
 "involves explicitly resizing the ground-truth images to 512x512". Measured on the
 released outputs:
 
-| | published | as defined | resize GT for FID | BICUBIC for LPIPS |
-|---|---:|---:|---:|---:|
-| FID | 4.78 | **4.7751** | 4.2167 | — |
-| Full LPIPS | 0.081 | **0.0807** | — | 0.0792 |
-| Region LPIPS | 0.062 | **0.0617** | — | 0.0650 |
+| | published | measured |
+|---|---:|---:|
+| FID | 4.78 | **4.7751** |
+| Full LPIPS | 0.081 | **0.0807** |
+| Region LPIPS | 0.062 | **0.0617** |
 
-Resizing the ground truth for FID costs 0.56 because the interpolation blurs both
-sides toward each other. Using BICUBIC where the original used bilinear moves LPIPS
-in both directions at once, which is why it is easy to miss.
-
-Two mechanical consequences worth knowing. `pytorch_fid` cannot batch
-native-resolution plates -- they differ in size, so `batch_size` must be 1; the
-original script's `batch_size=1` was a requirement, not a preference. And batching
-itself changes nothing: 4.2167 at batch 50 against 4.2166 at batch 1.
+One mechanical consequence: `pytorch_fid` cannot batch native-resolution plates,
+since they differ in size, so FID runs at `batch_size=1`. That is a requirement,
+not a tuning choice, and batching changes nothing numerically.
 
 **Region LPIPS masks the images; it does not crop them.** Both images are
 multiplied by the mask and LPIPS is taken over the whole 512x512 frame, so
@@ -54,10 +49,9 @@ everything outside the mask is identical black in both inputs. Cropping to the
 mask's bounding box instead gives 0.22 on the same LP outputs, and differs by
 9-10x on CCPD, because the crop removes the large identical region that otherwise
 dominates. Two papers reporting "region LPIPS" can differ by 3x on identical
-images. The mask keeps whatever soft edge its own resize produces -- forcing it to
-NEAREST gives 0.0587, not the published 0.062. On the CCPD outputs the same two
-definitions differ by 2.8x to 9.9x: province reconstruction scores 0.0174 masked
-against 0.1724 cropped.
+images. The mask keeps whatever soft edge its own resize produces. On the CCPD
+outputs the two definitions differ by 2.8x to 9.9x: province reconstruction scores
+0.0174 masked against 0.1724 cropped.
 
 **FID is not comparable across sample counts.** The same CCPD model scores 7.30 at
 n=200 and 3.85 at n=1,000. Only compare runs of equal size.
@@ -91,16 +85,13 @@ are the *right* characters, so on their own they would select the worse model. T
 mechanism has not been checked against the images themselves — look at
 `LP2024_no_odm` before drawing a conclusion from this row.
 
-CCPD here edits the **Chinese province character**, which the published CCPD table
-does not: that one masks only the trailing five alphanumerics, and the scripts
-behind it cannot express a province mask at all — their cell grid starts at x=140
-while the province occupies x=12..69. These numbers therefore have no published
-counterpart to reproduce; they measure a different task on the same dataset.
-
-They do use the same definitions as the LP tables above, so the two are internally
-consistent. Do not read them against the published CCPD table: masking one Chinese
-character is an easier problem than masking one to five alphanumerics, and the gap
-between the two is task, not method.
+These edit the **Chinese province character**. The published CCPD table does not:
+it masks only the trailing five alphanumerics, and the scripts behind it cannot
+express a province mask at all — their cell grid starts at x=140 while the province
+occupies x=12..69. So there is no published counterpart here, and the two should
+not be read against each other: masking one Chinese character is an easier problem
+than masking one to five alphanumerics. The definitions are the same as the LP
+tables above, so these numbers are consistent with those.
 
 ### CCPD2019 stage ablation, province reconstruction, n = 1,000
 
@@ -125,9 +116,9 @@ box of the filename's quadrilateral — the same rule `test_1000/plates` follows
 verified 6/6 against it. The 2,000 plates are spread across `ccpd_base`,
 `ccpd_challenge` and other subsets, so all nine have to be searched.
 
-Recomputed under the definitions above; the previous figures resized the ground
-truth for FID and used BICUBIC for LPIPS, which moved FID by 9-20%. Ranking is
-unchanged throughout, and ACC/NED are unaffected by either.
+ACC and NED never involve the ground-truth *image* -- the recogniser reads the
+generated plate and the target string comes from the filename -- so they are
+unaffected by how the ground truth is prepared.
 
 ### Province balancing
 

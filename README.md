@@ -150,9 +150,8 @@ CCPD province reconstruction reaches ACC 0.9920 against a real-photograph ceilin
 of 0.9960. Province balancing lifts cross-province replacement from 0.4400 to
 0.8000 using under a quarter of the data.
 
-The metric definitions matter more than usual here: FID leaves the ground truth at
-its original resolution while LPIPS resizes it bilinear, and getting either wrong
-moves the numbers by more than the gaps between methods.
+The CCPD figures are for editing the Chinese province character, which the
+published CCPD table does not cover.
 
 ## Scope
 
